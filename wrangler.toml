@@ -5,11 +5,11 @@ pages_build_output_dir = "dist"
 # KV: `npx wrangler kv namespace create IV_KV` 후 id를 채우세요.
 [[kv_namespaces]]
 binding = "IV_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "8b8d944e356845078ece1c9b81cad409"
 
 [vars]
 DAILY_GLOBAL_INTERVIEWS = "75"
 DAILY_DEVICE_INTERVIEWS = "3"
 PAID_OVERFLOW = "off"
 PREFERRED_MODELS = "deepseek,qwen,llama-3.3,gemma,mistral"
-TURNSTILE_SITEKEY = ""
+TURNSTILE_SITEKEY = "0x4AAAAAAFt3SH_C6OTYRDOB"
