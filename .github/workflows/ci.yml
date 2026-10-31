@@ -51,4 +51,4 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         if: env.CLOUDFLARE_API_TOKEN != ''
-        run: npx wrangler pages deploy dist --project-name ai-mock-interview --branch main
+        run: npx wrangler pages deploy dist --project-name ai-mock-interview-4rq --branch main

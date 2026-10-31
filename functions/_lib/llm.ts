@@ -30,7 +30,7 @@ async function chatOnce(env: Env, model: string, messages: ChatMessage[], timeou
       headers: {
         Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://ai-mock-interview.pages.dev',
+        'HTTP-Referer': 'https://ai-mock-interview-4rq.pages.dev',
         'X-Title': 'AI Mock Interview',
       },
       body: JSON.stringify({ model, messages, temperature: 0.6 }),

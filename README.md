@@ -42,23 +42,23 @@ npm run build && npm run preview:full   # http://localhost:8788
    ```
 2. Pages 프로젝트를 만듭니다.
    ```bash
-   npx wrangler pages project create ai-mock-interview
+   npx wrangler pages project create ai-mock-interview-4rq
    ```
 3. 시크릿을 등록합니다(값은 프롬프트에 입력).
    ```bash
-   npx wrangler pages secret put OPENROUTER_API_KEY --project-name ai-mock-interview
+   npx wrangler pages secret put OPENROUTER_API_KEY --project-name ai-mock-interview-4rq
    ```
    ```bash
-   npx wrangler pages secret put DEVICE_SECRET --project-name ai-mock-interview
+   npx wrangler pages secret put DEVICE_SECRET --project-name ai-mock-interview-4rq
    ```
    ```bash
-   npx wrangler pages secret put TURNSTILE_SECRET --project-name ai-mock-interview
+   npx wrangler pages secret put TURNSTILE_SECRET --project-name ai-mock-interview-4rq
    ```
    - `OPENROUTER_API_KEY`가 있으면 `DEVICE_SECRET`과 `TURNSTILE_SECRET`도 반드시 있어야 합니다. 둘 중 하나라도 없으면 `/api/session`이 503을 반환합니다(공용 키 보호를 위해 일부러 막음). `DEVICE_SECRET`은 긴 무작위 값으로 설정하세요.
    - Turnstile 사이트 키는 `wrangler.toml`의 `TURNSTILE_SITEKEY`에 넣습니다.
 4. 배포합니다.
    ```bash
-   npm run build && npx wrangler pages deploy dist --project-name ai-mock-interview
+   npm run build && npx wrangler pages deploy dist --project-name ai-mock-interview-4rq
    ```
    CI에서 자동 배포하려면 GitHub 시크릿 `CLOUDFLARE_API_TOKEN`과 `CLOUDFLARE_ACCOUNT_ID`를 등록하세요. `main`에 푸시하면 배포됩니다.
 5. (선택) Workers Analytics Engine 데이터셋을 `EVENTS` 바인딩으로 연결하면 지표 이벤트가 쌓입니다.
