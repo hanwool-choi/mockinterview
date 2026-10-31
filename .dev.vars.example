@@ -1,0 +1,4 @@
+# 복사해서 .dev.vars 로 저장 (커밋 금지). 값은 직접 채우세요.
+OPENROUTER_API_KEY=
+DEVICE_SECRET=
+TURNSTILE_SECRET=
