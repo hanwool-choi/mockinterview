@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from '../components/Icon';
-import { LineMap } from '../components/LineMap';
-import { routeStations } from '../landing/route';
+import { SheetProgress } from '../components/Sheet';
+import { sheetRows } from '../landing/rows';
 import type { Report } from '../../shared/schema';
 import { AnswerBox } from '../components/AnswerBox';
 import { ScoreCard } from '../components/ScoreCard';
@@ -54,15 +54,16 @@ export function Room({ setup, sid, fast, onDone }: { setup: Setup; sid: string; 
             </span>
           )}
         </div>
-        <LineMap
-          size="compact"
+        <SheetProgress
           ariaLabel={t('room.routeLabel')}
-          stations={routeStations(plan, setup.uiLang).map((st, i) => {
+          cells={sheetRows(plan, setup.uiLang).map((st, i) => {
             const pre = state.phase === 'LOBBY' || state.phase === 'GREETING' || state.phase === 'ICEBREAK';
             const finished = iv.status !== 'running' || state.phase === 'CLOSING' || state.phase === 'REPORT';
             const qi = i - 1;
             const stateOf = finished ? 'done' : i === 0 ? (pre ? 'now' : 'done') : pre ? 'next' : qi < state.qIndex ? 'done' : qi === state.qIndex ? 'now' : 'next';
-            return { ...st, en: '', state: stateOf as 'done' | 'now' | 'next' };
+            const scored = state.items.find((it) => it.questionId === st.id && it.score && !it.skipped);
+            const mark = i === 0 ? undefined : state.items.some((it) => it.questionId === st.id && it.skipped) ? '–' : setup.mode === 'practice' && scored ? scored.score!.grade : undefined;
+            return { id: st.id, label: st.label, state: stateOf as 'done' | 'now' | 'next', mark };
           })}
         />
         <div className="room-actions">

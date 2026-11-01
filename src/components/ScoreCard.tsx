@@ -1,23 +1,23 @@
 import { Icon } from './Icon';
 import { GuideView } from './Guide';
+import { PenRing, RubricGrid } from './Sheet';
 import type { Lang, Question, Score } from '../../shared/schema';
-import { useT, type Key } from '../i18n';
+import { useT } from '../i18n';
 
-const RUBRIC: (keyof Score['rubric'])[] = ['structure', 'specificity', 'jobFit', 'consistency', 'delivery'];
-
-export function rubricLabel(k: keyof Score['rubric'], lang: Lang): Key {
-  return k === 'delivery' && lang === 'en' ? 'rubric.deliveryEn' : (`rubric.${k}` as Key);
-}
+export { rubricLabel } from './Sheet';
 
 export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: { score: Score; question?: Question; lang: Lang; onNext?: () => void; onRetry?: () => void; canRetry?: boolean }) {
   const t = useT();
   return (
     <section className="score-card" data-testid="score-card">
       <header>
-        <div className={`grade grade-${score.grade}`}>{score.grade}</div>
+        <div className={`grade grade-${score.grade}`}>
+          <span className="hand">{score.grade}</span>
+          <PenRing seed={2} />
+        </div>
         <div>
           <div className="score-num">
-            {score.score}
+            <span className="hand">{score.score}</span>
             <small>/100</small>
           </div>
           {score.local && (
@@ -27,17 +27,7 @@ export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: 
           )}
         </div>
       </header>
-      <ul className="rubric">
-        {RUBRIC.map((k) => (
-          <li key={k}>
-            <span>{t(rubricLabel(k, lang))}</span>
-            <span className="track" title={`${score.rubric[k]} / 20`}>
-              <span className="bar" style={{ width: `${(score.rubric[k] / 20) * 100}%` }} />
-            </span>
-            <b>{score.rubric[k]}</b>
-          </li>
-        ))}
-      </ul>
+      <RubricGrid rubric={score.rubric} lang={lang} compact />
       {score.guide && <GuideView guide={score.guide} />}
       {!!score.strengths.length && (
         <div className="fb good">

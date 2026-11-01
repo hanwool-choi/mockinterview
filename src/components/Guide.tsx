@@ -1,9 +1,10 @@
 import type { Guide as G } from '../../shared/schema';
 import { useT } from '../i18n';
+import { PenCheck, PenCross } from './Sheet';
 
 const PARTS = ['situation', 'task', 'action', 'result'] as const;
 
-/** Per-answer coaching: verdict, STAR as four stations, fixes, phrase swaps, evidence, drill. */
+/** Per-answer coaching: verdict, STAR as four checkbox cells, fixes, phrase swaps, evidence, drill. */
 export function GuideView({ guide, compact = false }: { guide: G; compact?: boolean }) {
   const t = useT();
   return (
@@ -13,7 +14,9 @@ export function GuideView({ guide, compact = false }: { guide: G; compact?: bool
         <ol className="star-line" aria-label={t('guide.star')}>
           {PARTS.map((k) => (
             <li key={k} className={`star-${guide.star![k]}`}>
-              <span className="dot" aria-hidden="true" />
+              <span className="box" aria-hidden="true">
+                {guide.star![k] === 'ok' ? <PenCheck /> : guide.star![k] === 'weak' ? <span className="hand">△</span> : <PenCross />}
+              </span>
               <b>{t(`guide.${k}`)}</b>
               <span className="visually-hidden">{t(`guide.${guide.star![k]}`)}</span>
             </li>

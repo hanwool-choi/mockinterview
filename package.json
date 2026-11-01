@@ -14,6 +14,7 @@
     "scan": "node scripts/secret-scan.mjs"
   },
   "dependencies": {
+    "@fontsource/nanum-pen-script": "^5.3.0",
     "mammoth": "^1.13.0",
     "pdfjs-dist": "^6.4.299",
     "pretendard": "^1.3.9",

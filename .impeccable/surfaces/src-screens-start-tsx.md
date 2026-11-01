@@ -12,14 +12,14 @@ Audience: experienced job changers (3–10y) with a real interview coming. Actio
 
 ## Direction contract
 
-THESIS: The interview is a single subway line with twelve stations, from icebreaking to closing; a follow-up question is a transfer. The page refuses the category default of headline + product screenshot + three feature cards.
+THESIS: The interviewer's evaluation sheet, handed to the candidate before the interview. Every answer fills a row; the report is the finished sheet with the verdict stamped. The page refuses the category default of headline + product screenshot + three feature cards.
 
-OWN-WORLD: Seoul metro signage. White ground, near-black ink, one committed line colour (Line 2 green) running as a thick track; stations are white dots with ink rings; transfers are larger ringed dots. Pretendard set heavy for station names, small English station names under them. Round station dots and fully round buttons; no shadows at rest, no gradients, no cards-as-structure.
+OWN-WORLD: A printed Korean 면접 평가표. White paper, navy-black form ink, 2px outer rules and 1px inner cell rules, grey label cells. One red pen for every evaluator mark: rings around a five-point cell, handwritten numbers (Nanum Pen Script), ticks, crosses, a rotated verdict stamp, signatures. Pretendard for print. No shadows, no gradients, no cream paper, no serif.
 
-STORY: The visitor sees their own interview as a route, taps a station to read a real question drawn from a sample resume with its source passage, understands the panel and the report, and starts.
+STORY: The visitor sees the sheet they will be scored on (a fictional sample, rings drawing in, stamp pressing last), opens a question row to see it built from a resume line, sees the panel and the modes, sees the finished sheet as the report, and starts.
 
-FIRST VIEWPORT: Left two-thirds: h1 "내 이력서로 묻는 면접관들" at display size, one sentence under it, primary round button "내 면접 시작하기". Full-width green line across the lower half with 12 stations; the selected station opens a question board under it (question, interviewer, source passage).
+FIRST VIEWPORT: Left: h1 "면접관의 평가표, / 면접 전에 먼저 채워보세요", one paragraph, ink button "내 면접 시작하기". Right: the sample evaluation sheet (지원자란, five rubric rows with rings and points, 총점, 판정 stamp, 종합 의견 in hand, three interviewer signatures).
 
-FORM: Subway line map, grounded candidate 3 of 7. seed:3a0c0af4cc843d01
+FORM: Interview evaluation sheet, pick candidate 2 of the reroll list. seed:3a0c0af4cc843d01
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, DESIGN.md, and every shipping raster carrying its provenance

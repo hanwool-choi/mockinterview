@@ -1,13 +1,13 @@
 import type { Lang, Plan } from '../../shared/schema';
 import { STAGE_PLAN } from '../engine/templates';
 import { translate, type Key } from '../i18n';
-import { STATION_LABELS } from './copy';
+import { ROW_LABELS } from './copy';
 
-export type RouteStation = { id: string; label: string; en: string; transfer: boolean };
+export type SheetRow = { id: string; label: string; en: string; transfer: boolean };
 
-/** One naming for the line everywhere: icebreak + one station per planned question. */
-export function routeStations(plan: Plan, ui: Lang): RouteStation[] {
-  const names = STATION_LABELS[ui];
+/** One naming for the sheet rows everywhere: the opening + one row per planned question. */
+export function sheetRows(plan: Plan, ui: Lang): SheetRow[] {
+  const names = ROW_LABELS[ui];
   const seen: Record<string, number> = {};
   const qs = plan.questions.map((q) => {
     const k = seen[q.stage] ?? 0;

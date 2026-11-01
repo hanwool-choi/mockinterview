@@ -125,12 +125,12 @@ export function App() {
   );
 }
 
-/** Wordmark symbol: a station on the line. */
+/** Wordmark symbol: a printed score box with a red-pen check. */
 function Logo() {
   return (
-    <svg className="logo" width="30" height="18" viewBox="0 0 30 18" aria-hidden="true">
-      <rect x="0" y="6" width="30" height="6" rx="3" fill="var(--line)" />
-      <circle cx="15" cy="9" r="7" fill="var(--ground)" stroke="var(--ink)" strokeWidth="3" />
+    <svg className="logo" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="4" width="17" height="17" fill="none" stroke="var(--ink)" strokeWidth="2.5" />
+      <path d="M6 12.5 L10.5 17 L22 3" fill="none" stroke="var(--pen)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

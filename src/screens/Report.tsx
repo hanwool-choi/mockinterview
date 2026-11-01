@@ -1,14 +1,13 @@
-import { useState, type CSSProperties } from 'react';
+import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import type { Report as R } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
 import { faceTarget } from '../avatar/expression';
 import { lookFor } from '../avatar/look';
 import { api } from '../api/client';
-import { LineMap } from '../components/LineMap';
-import { routeStations } from '../landing/route';
+import { RubricGrid, SheetFields, SheetProgress, Stamp } from '../components/Sheet';
+import { sheetRows } from '../landing/rows';
 import { GuideView } from '../components/Guide';
-import { RubricBars } from '../components/RubricBars';
 import type { InterviewState } from '../engine/machine';
 import { useT, type Key } from '../i18n';
 import { averageRubric, download, toMarkdown } from '../report/export';
@@ -22,46 +21,54 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
   const d = report.privateDetail;
   const names = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.displayName]));
   const titles = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.title]));
-  const stationName = Object.fromEntries(routeStations(state.plan, setup.uiLang).map((st) => [st.id, st.label]));
+  const stationName = Object.fromEntries(sheetRows(state.plan, setup.uiLang).map((st) => [st.id, st.label]));
   const verdictFace = p.verdict === 'pass' ? 'smile' : p.verdict === 'hold' ? 'tilt' : 'frown';
 
   return (
     <main className="report" data-testid="report">
-      <header className="report-hero">
-        <div className={`grade grade-xl grade-${p.grade}`}>{p.grade}</div>
-        <div>
-          <h1>
-            {p.score}
-            <small>/100</small> <span className={`verdict v-${p.verdict}`}>{t(`report.verdict.${p.verdict}` as Key)}</span>
-          </h1>
-          <p className="report-meta">
-            {t('report.title')} · {p.company}
-            {p.role ? ` · ${p.role}` : ''}
-          </p>
-          <p className="lead">{p.oneLiner}</p>
-          {report.local && <p className="badge">{t('report.local')}</p>}
+      <article className="sheet report-sheet" aria-labelledby="sheet-title" data-ui>
+        <header className="sheet-head">
+          <h1 id="sheet-title">{t('sheet.title')}</h1>
+          <SheetFields
+            fields={[
+              [t('sheet.company'), p.company],
+              [t('sheet.role'), p.role || '—'],
+              [t('sheet.type'), t(setup.mode === 'practice' ? 'sheet.typePractice' : 'sheet.typeReal')],
+              [t('sheet.date'), new Date().toLocaleDateString(setup.uiLang === 'ko' ? 'ko-KR' : 'en-US')],
+            ]}
+          />
+        </header>
+        <RubricGrid rubric={averageRubric(state.items)} lang={setup.lang} caption={t('report.radar')} />
+        <div className="sheet-total">
+          <div>
+            <span className="sheet-k">{t('sheet.total')}</span>
+            <span className="hand big-hand">{p.score}</span>
+            <small>/100</small>
+          </div>
+          <div>
+            <span className="sheet-k">{t('sheet.grade')}</span>
+            <span className={`hand big-hand grade-text grade-${p.grade}`}>{p.grade}</span>
+          </div>
+          <div className="sheet-verdict">
+            <span className="sheet-k">{t('sheet.verdict')}</span>
+            <Stamp verdict={p.verdict} label={t(`report.verdict.${p.verdict}` as Key)} />
+          </div>
         </div>
-      </header>
-
-      <section className="report-route" style={{ '--count': state.plan.questions.length + 1 } as CSSProperties}>
-        <LineMap
-          size="compact"
+        <section className="sheet-opinion">
+          <h2 className="sheet-k">{t('sheet.opinion')}</h2>
+          <p className="lead">{p.oneLiner}</p>
+          <p>{d.verdictReason}</p>
+          {report.local && <p className="badge">{t('report.local')}</p>}
+        </section>
+        <SheetProgress
           ariaLabel={t('room.routeLabel')}
-          stations={routeStations(state.plan, setup.uiLang).map((st) => {
-            const scored = state.items.filter((it) => it.questionId === st.id && it.score && !it.skipped);
-            return { ...st, en: '', mark: st.id === 'icebreak' ? undefined : scored[0] ? String(scored[0].score!.score) : '–', state: 'done' as const };
+          cells={sheetRows(state.plan, setup.uiLang).map((st) => {
+            const scored = state.items.find((it) => it.questionId === st.id && it.score && !it.skipped);
+            return { id: st.id, label: st.label, state: 'done' as const, mark: st.id === 'icebreak' ? undefined : scored ? String(scored.score!.score) : '–' };
           })}
         />
-      </section>
-
-      <div className="report-grid">
-        <section className="card">
-          <h2>{t('report.why')}</h2>
-          <p>{d.verdictReason}</p>
-          <RubricBars rubric={averageRubric(state.items)} lang={setup.lang} />
-        </section>
-        <section className="card">
-          <h2>{t('report.panel')}</h2>
+        <section className="sheet-signers">
+          <h2 className="sheet-k">{t('sheet.signers')}</h2>
           <ul className="panel-comments">
             {d.interviewerComments.map((c) => {
               const cfg = setup.interviewers.find((i) => i.id === c.interviewerId);
@@ -74,11 +81,15 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
                     </b>
                     <p>{c.comment}</p>
                   </div>
+                  <span className="sign hand" aria-hidden="true">{names[c.interviewerId]}</span>
                 </li>
               );
             })}
           </ul>
         </section>
+      </article>
+
+      <div className="report-grid">
         <section className="card">
           <h2>{t('report.strengths')}</h2>
           <ol>{d.top3Strengths.map((s, i) => <li key={i}>{s}</li>)}</ol>
