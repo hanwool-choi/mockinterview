@@ -164,7 +164,6 @@ main { width: 100%; max-width: 1240px; margin: 0 auto; padding: 2.5rem var(--mar
 .on-spine { position: relative; }
 .on-spine::before { content: ''; position: absolute; left: calc(var(--spine-x) - var(--spine-pad) - 15px); top: 0.35rem; width: 30px; height: 30px; border-radius: 50%; background: var(--ground); border: 5px solid var(--ink); box-sizing: border-box; z-index: 1; }
 .on-spine::after { content: ''; position: absolute; left: calc(var(--spine-x) - var(--spine-pad) - 6px); top: 0.9rem; width: 12px; height: calc(100% + var(--gap-section)); background: var(--line); border-radius: 12px; }
-.spine > .on-spine:first-child::after { top: calc(-1 * var(--gap-section) + 0.9rem); height: calc(100% + 2 * var(--gap-section)); }
 .terminus-stop::after { display: none; }
 .terminus-stop::before { width: 44px; height: 44px; border-width: 8px; left: calc(var(--spine-x) - var(--spine-pad) - 22px); top: 0; outline: 6px solid var(--line); outline-offset: 5px; }
 .feature h2, .faq h2, .close h2, .privacy-field h2 { font-size: var(--t-h2); }
