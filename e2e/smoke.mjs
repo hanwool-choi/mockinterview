@@ -14,7 +14,11 @@ let server;
 let BASE = process.env.BASE_URL;
 if (!BASE) {
   BASE = 'http://localhost:8799';
-  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error'], { stdio: 'ignore', env: { ...process.env, CI: '1' } });
+  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY='], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
+  // Kill the whole process group (npx → wrangler → workerd) on any exit, so no stale server keeps the port.
+  const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch {} };
+  process.on('exit', stop);
+  process.on('SIGINT', () => process.exit(130));
   for (let i = 0; i < 60; i++) {
     try { if ((await fetch(BASE + '/api/config')).ok) break; } catch {}
     await new Promise((r) => setTimeout(r, 1000));
@@ -88,6 +92,5 @@ try {
   }
 } finally {
   await browser.close();
-  server?.kill();
 }
 process.exit(failed ? 1 : 0);

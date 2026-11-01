@@ -15,24 +15,49 @@ const PERSONAS: Personality[] = ['warm', 'strict', 'pressure'];
 
 declare global {
   interface Window {
-    turnstile?: { render(el: HTMLElement, o: { sitekey: string; callback: (t: string) => void; size?: string }): string; reset(id?: string): void };
+    turnstile?: {
+      render(el: HTMLElement, o: { sitekey: string; callback: (t: string) => void; 'error-callback'?: (code: string) => boolean | void; 'expired-callback'?: () => void; size?: string }): string;
+      reset(id?: string): void;
+    };
   }
 }
 
 function useTurnstile(siteKey: string) {
   const ref = useRef<HTMLDivElement>(null);
   const [token, setToken] = useState('');
+  const [error, setError] = useState('');
+  const widget = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!siteKey || !ref.current) return;
-    const render = () => window.turnstile?.render(ref.current!, { sitekey: siteKey, callback: setToken });
+    const render = () => {
+      widget.current = window.turnstile?.render(ref.current!, {
+        sitekey: siteKey,
+        callback: (t) => {
+          setError('');
+          setToken(t);
+        },
+        'error-callback': (code) => {
+          setToken('');
+          setError(String(code || 'unknown'));
+          return true;
+        },
+        'expired-callback': () => setToken(''),
+      });
+    };
     if (window.turnstile) return void render();
     const s = document.createElement('script');
     s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     s.async = true;
     s.onload = render;
+    s.onerror = () => setError('script');
     document.head.appendChild(s);
   }, [siteKey]);
-  return { ref, token, needed: !!siteKey };
+  // A token is single-use: get a fresh one after any failed start.
+  const reset = () => {
+    setToken('');
+    window.turnstile?.reset(widget.current);
+  };
+  return { ref, token, error, reset, needed: !!siteKey };
 }
 
 export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Setup; onChange: (s: Setup) => void; onBack: () => void; onStart: (sid: string) => void; siteKey: string }) {
@@ -55,6 +80,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
     const r = await api.session(ts.token || undefined);
     setBusy(false);
     if (r.ok) return onStart(r.data.sid);
+    ts.reset();
     setMsg(r.reason === 'device' ? t('quota.device', { n: 3 }) : r.reason === 'global' ? t('quota.global') : t('quota.error'));
   };
 
@@ -150,6 +176,12 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
       <div ref={ts.ref} className="turnstile" />
       <footer className="screen-foot">
         {msg && <p className="warn" role="alert">{msg}</p>}
+        {ts.needed && ts.error && (
+          <p className="warn" role="alert" data-testid="turnstile-error">
+            {t('panel.turnstileError', { code: ts.error })}
+          </p>
+        )}
+        {ts.needed && !ts.token && !ts.error && <span className="muted">{t('panel.turnstileWait')}</span>}
         <button className="primary big" disabled={busy || (ts.needed && !ts.token)} onClick={start} data-testid="start-interview">
           {busy ? t('panel.starting') : `${t('panel.start')} →`}
         </button>

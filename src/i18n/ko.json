@@ -153,5 +153,7 @@
   "stage.company": "회사 이해",
   "stage.situational": "상황·인성",
   "stage.reverse": "역질문",
-  "stage.closing": "마무리"
+  "stage.closing": "마무리",
+  "panel.turnstileError": "자동 입력 방지 확인에 실패했어요(코드 {code}). 광고 차단 확장을 끄거나 새로고침해 보세요. 계속되면 운영자가 Turnstile 허용 도메인에 이 주소를 추가해야 해요.",
+  "panel.turnstileWait": "자동 입력 방지 확인 중…"
 }
