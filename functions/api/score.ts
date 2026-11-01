@@ -7,12 +7,13 @@ import { fakeScore } from '../_lib/fake';
 import { guard, json } from '../_lib/http';
 import { callJson } from '../_lib/llm';
 import { buildScoreMessages } from '../_lib/prompts';
+import { inLanguage } from '../_lib/lang';
 
 export async function handleScore(req: Request, env: Env, fetchFn?: typeof fetch): Promise<Response> {
   return guard(async () => {
     const body = await admit<ScoreRequest>(req, env, 'score', LIMITS.scoreBytes);
     if (!body.question?.text || typeof body.answer !== 'string') return json(400, { error: 'input' });
-    const r = await callJson(env, { messages: buildScoreMessages(body), schema: ScoreSchema, timeoutMs: 14_000, deadlineMs: 28_000, fetchFn, fake: () => fakeScore(body) });
+    const r = await callJson(env, { messages: buildScoreMessages(body), schema: ScoreSchema, timeoutMs: 45_000, freeBudgetMs: 35_000, deadlineMs: 85_000, fetchFn, fake: () => fakeScore(body), validate: (d) => inLanguage(body.lang, [...d.improvements, ...d.strengths, d.betterAnswer, d.followUp?.text], [body.answer, body.question.text, ...body.evidence.map((c) => c.text)].join(' ')) });
     if (!r.ok) return json(200, { ok: false, fallback: true });
     const data = normalizeScore(r.data);
     const known = new Set(body.interviewers.map((i) => i.id));

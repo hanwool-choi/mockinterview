@@ -7,12 +7,13 @@ import { fakeReport } from '../_lib/fake';
 import { guard, json } from '../_lib/http';
 import { callJson } from '../_lib/llm';
 import { buildReportMessages } from '../_lib/prompts';
+import { inLanguage } from '../_lib/lang';
 
 export async function handleReport(req: Request, env: Env, fetchFn?: typeof fetch): Promise<Response> {
   return guard(async () => {
     const body = await admit<ReportRequest>(req, env, 'report', LIMITS.reportBytes);
     if (!Array.isArray(body.items) || !body.items.length) return json(400, { error: 'items' });
-    const r = await callJson(env, { messages: buildReportMessages(body), schema: ReportSchema, timeoutMs: 28_000, deadlineMs: 58_000, fetchFn, fake: () => fakeReport(body) });
+    const r = await callJson(env, { messages: buildReportMessages(body), schema: ReportSchema, timeoutMs: 60_000, freeBudgetMs: 50_000, deadlineMs: 120_000, fetchFn, fake: () => fakeReport(body), validate: (d) => inLanguage(body.lang, [d.privateDetail.verdictReason, ...d.privateDetail.top3Fixes]) });
     if (!r.ok) return json(200, { ok: false, fallback: true });
     // The headline number is always the true average, not the model's guess.
     const avg = Math.round(body.items.reduce((n, i) => n + i.score.score, 0) / body.items.length);

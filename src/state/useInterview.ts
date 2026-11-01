@@ -13,9 +13,10 @@ import { localScore } from '../engine/localScore';
 import { currentAsker, currentQuestion, currentText, initialState, reduce, type InterviewEvent, type InterviewState } from '../engine/machine';
 import { adjustReactions } from '../engine/reactions';
 import { buildTemplatePlan, fillMissing } from '../engine/templates';
+import { ackFor, dedupeQuestions, sanitizeFollowUp } from '../engine/dialogue';
 import { translate } from '../i18n';
 import { createTts, voiceProfileFor, type TtsEngine } from '../voice/tts';
-import { makeScoreRequest } from './requests';
+import { makeReportRequest, makeScoreRequest } from './requests';
 import type { Setup } from './setup';
 
 export type PanelApi = {
@@ -78,6 +79,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
   const handled = useRef<string>('');
   const pending = useRef<Promise<unknown>[]>([]);
   const scoring = useRef<number>(-1);
+  const askedRef = useRef<Set<string>>(new Set(restored?.state.items.map((i) => i.asked) ?? []));
   const scoreCalls = useRef(restored?.state.items.filter((i) => !i.skipped).length ?? 0);
   const lineId = useRef(restored?.lines.length ?? 0);
   const alive = useRef(true);
@@ -142,7 +144,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       if (cancelled) return;
       let p: Plan;
       if (res) {
-        p = fillMissing(res, template);
+        p = dedupeQuestions(fillMissing(res, template), template);
         const known = new Set(ivs.map((i) => i.id));
         p = { ...p, questions: p.questions.map((q) => (known.has(q.askedBy) ? q : { ...q, askedBy: template.questions.find((t) => t.stage === q.stage)?.askedBy ?? ivs[0].id })) };
         const names = new Map(res.interviewers.map((i) => [i.id, i]));
@@ -188,8 +190,11 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
         sid, lang: L, question: { ...q, text: item.asked }, answer: item.answer, thread: cur.thread.slice(0, -1),
         evidence: [...ev.values()], history: cur.items.slice(0, -1).map((i) => i.score?.summary ?? '').filter(Boolean).slice(-6),
         interviewers: ivs, followUpsUsed: cur.followUpsUsed, followUpLimit: followUpLimit(asker.personality),
+        asked: [...askedRef.current], upcoming: cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text),
       });
-      const local = () => localScore({ ...q, askedBy: item.askedBy }, item.answer, L);
+      const upcoming = cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text);
+      const clean = (sc: Score): Score => sanitizeFollowUp(sc, q, askedRef.current, upcoming);
+      const local = () => clean(localScore({ ...q, askedBy: item.askedBy }, item.answer, L, [...ev.values()][0]?.text));
       // Respect the per-session cap client-side: past it, score locally without calling the API.
       if (scoreCalls.current >= SESSION_CAPS.score) {
         scoring.current = -1;
@@ -201,16 +206,17 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
         const r = await api.score(req);
         if (!r) api.track('fallback', 'score');
         scoring.current = -1;
-        dispatch(r ? { type: 'SCORE_READY', score: r } : { type: 'SCORE_FAILED', score: local() });
+        dispatch(r ? { type: 'SCORE_READY', score: clean(r) } : { type: 'SCORE_FAILED', score: local() });
         return;
       }
-      const remote = api.score(req, 45_000);
+      const remote = api.score(req, 95_000);
       pending.current.push(remote);
-      const timer = new Promise<null>((r) => setTimeout(() => r(null), opts.fast ? 4000 : 12_000));
+      // Free models take 15–35s; wait long enough that a real-mode follow-up can still happen.
+      const timer = new Promise<null>((r) => setTimeout(() => r(null), opts.fast ? 4000 : 30_000));
       const first = await Promise.race([remote, timer]);
       scoring.current = -1;
       if (first) {
-        dispatch({ type: 'SCORE_READY', score: first });
+        dispatch({ type: 'SCORE_READY', score: clean(first) });
         return;
       }
       dispatch({ type: 'SCORE_FAILED', score: { ...local(), followUp: null } });
@@ -230,7 +236,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       const display = p.interviewers.map((i) => ({ id: i.id, displayName: i.displayName, title: i.title }));
       let r: Report | null = null;
       if (scored.length) {
-        const req: ReportRequest = { sid, lang: L, company: setup.company, role: setup.role, interviewers: display, items: scored };
+        const req: ReportRequest = makeReportRequest({ sid, lang: L, company: setup.company, role: setup.role, interviewers: display, items: scored });
         r = await api.report(req);
         if (!r) api.track('fallback', 'report');
       }
@@ -266,6 +272,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
         }
         case 'ASK': {
           const q = currentQuestion(cur)!;
+          askedRef.current.add(currentText(cur));
           await say(currentAsker(cur), currentText(cur), { kind: 'q', questionId: q.id, followUp: !!cur.pendingFollowUp });
           dispatch({ type: 'NEXT' });
           break;
@@ -274,7 +281,6 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
           const asker = currentAsker(cur);
           ivs.forEach((iv) => panelRef.current?.setAction(iv.id, iv.id === asker || Math.random() < 0.5 ? 'write' : null));
           void scoreItem(cur);
-          pushLine({ who: asker, text: pickRandom(p.smallTalk.acknowledgements, L === 'ko' ? '네.' : 'I see.'), kind: 'say' });
           break;
         }
         case 'REACT': {
@@ -282,9 +288,9 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
           const last = cur.items[cur.items.length - 1];
           const sc = last.score!;
           for (const r of adjustReactions(sc.score, ivs, sc.reactions)) setTimeout(() => panelRef.current?.setExpression(r.interviewerId, r.expression), opts.fast ? 0 : r.delayMs);
-          const line = sc.reactions.find((r) => r.interviewerId === last.askedBy && r.line)?.line;
-          if (line && cur.mode === 'real') await say(last.askedBy, line);
-          else await new Promise((r) => setTimeout(r, opts.fast ? 150 : 1400));
+          // The spoken reaction follows the actual score (the model's line, else a band-matched back-channel).
+          const line = sc.reactions.find((r) => r.interviewerId === last.askedBy && r.line)?.line || ackFor(sc.score, L, cur.items.length);
+          await say(last.askedBy, line);
           dispatch({ type: 'NEXT' });
           break;
         }

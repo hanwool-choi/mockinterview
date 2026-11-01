@@ -23,5 +23,6 @@ export function normalizeScore(s: Score): Score {
     delivery: clamp20(s.rubric.delivery),
   };
   const score = rubricSum(rubric);
-  return { ...s, rubric, score, grade: gradeOf(score) };
+  const guide = s.guide && { ...s.guide, fixes: s.guide.fixes.slice(0, 3), phrasing: s.guide.phrasing.slice(0, 3) };
+  return { ...s, rubric, score, grade: gradeOf(score), ...(guide ? { guide } : {}) };
 }

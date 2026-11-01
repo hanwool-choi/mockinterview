@@ -79,9 +79,28 @@ async function runFlow(browser, { name, viewport, lang, mode, panel }) {
   return { name, reached, answers, sawFeedback, errors };
 }
 
+// Regression: two uploads finishing close together must both land (stale-closure bug).
+async function uploadBoth(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(`${BASE}/?fast=1`);
+  await page.getByTestId('lang-ko').click();
+  const files = page.locator('input[type=file]');
+  await files.nth(1).setInputFiles(new URL('./fixtures/resume.docx', import.meta.url).pathname);
+  await files.nth(2).setInputFiles(new URL('./fixtures/portfolio.pdf', import.meta.url).pathname);
+  await sleep(5000);
+  const lens = [];
+  for (const i of [1, 2]) lens.push((await page.locator('.doc-field').nth(i).locator('textarea').inputValue()).length);
+  await page.close();
+  return lens;
+}
+
 let failed = false;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
+  const lens = await uploadBoth(browser);
+  const upOk = lens.every((n) => n > 200);
+  console.log(`${upOk ? 'PASS' : 'FAIL'} upload-both: resume=${lens[0]} portfolio=${lens[1]}`);
+  if (!upOk) failed = true;
   const flows = [
     { name: 'ko-practice-pc', viewport: { width: 1440, height: 900 }, lang: 'ko', mode: 'practice', panel: 3 },
     { name: 'en-real-mobile', viewport: { width: 390, height: 844 }, lang: 'en', mode: 'real', panel: 2 },

@@ -68,11 +68,11 @@ function DocField({ label, value, onChange, setup, optional }: { label: string; 
   );
 }
 
-export function Prepare({ setup, onChange, onBack, onNext }: { setup: Setup; onChange: (s: Setup) => void; onBack: () => void; onNext: () => void }) {
+export function Prepare({ setup, onChange, onBack, onNext }: { setup: Setup; onChange: (s: Setup | ((prev: Setup) => Setup)) => void; onBack: () => void; onNext: () => void }) {
   const t = useT();
   const [agree, setAgree] = useState(false);
-  const set = (p: Partial<Setup>) => onChange({ ...setup, ...p });
-  const setDoc = (k: keyof Docs) => (v: string) => onChange({ ...setup, docs: { ...setup.docs, [k]: v } });
+  const set = (p: Partial<Setup>) => onChange((prev) => ({ ...prev, ...p }));
+  const setDoc = (k: keyof Docs) => (v: string) => onChange((prev) => ({ ...prev, docs: { ...prev.docs, [k]: v } }));
   const ready = setup.company.trim() && setup.docs.jd.trim() && setup.docs.resume.trim() && agree;
   return (
     <main className="prepare">
@@ -86,7 +86,7 @@ export function Prepare({ setup, onChange, onBack, onNext }: { setup: Setup; onC
           data-testid="fill-sample"
           onClick={() => {
             const s = SAMPLE[setup.lang];
-            onChange({ ...setup, company: s.company, role: s.role, career: 'exp', years: s.years, docs: s.docs });
+            onChange((prev) => ({ ...prev, company: s.company, role: s.role, career: 'exp', years: s.years, docs: s.docs }));
           }}
         >
           {t('prep.sample')}

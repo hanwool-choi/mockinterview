@@ -45,8 +45,12 @@ const EN: Record<Stage, ((c: Ctx) => T)[]> = {
 /** The line in a passage that carries a claim: most figures wins, bullets and section tags stripped. */
 export function claimLine(text: string, max = 60): string {
   const lines = text.split(/\n|(?<=[.!?。])\s/).map((l) => l.replace(/^[-•·\s]+/, '').replace(/^\[[^\]]*\]\s*/, '').trim()).filter((l) => l.length > 6);
-  const digits = (l: string) => (l.match(/\d/g) ?? []).length;
-  const best = lines.reduce((a, b) => (digits(b) > digits(a) ? b : a), lines[0] ?? text.trim());
+  // A claim line carries results (%, →, 배, 명, 건...); dates like 2019.07 ~ 2021.02 are not claims.
+  const weight = (l: string) => {
+    const noDates = l.replace(/\d{4}[.\-/]\d{1,2}(?:[.\-/]\d{1,2})?|\d{4}\s*년/g, '');
+    return (noDates.match(/\d/g) ?? []).length + (/[%→]|배|명|건|분|일|시간|원/.test(noDates) ? 5 : 0);
+  };
+  const best = lines.reduce((a, b) => (weight(b) > weight(a) ? b : a), lines[0] ?? text.trim());
   const s = best.replace(/[.。]$/, '');
   return s.length > max ? s.slice(0, max) + '…' : s;
 }

@@ -7,6 +7,7 @@ import { lookFor } from '../avatar/look';
 import { api } from '../api/client';
 import { LineMap } from '../components/LineMap';
 import { routeStations } from '../landing/route';
+import { GuideView } from '../components/Guide';
 import { RubricBars } from '../components/RubricBars';
 import type { InterviewState } from '../engine/machine';
 import { useT, type Key } from '../i18n';
@@ -101,11 +102,12 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
                   <button className="link row-toggle" onClick={() => setOpen(open === i ? null : i)}>
                     <span className="stage-tag">{stationName[it.questionId] ?? t(`stage.${it.stage}` as Key)}</span> {it.asked}
                   </button>
+                  {open !== i && it.score?.guide?.verdict && <p className="row-verdict">{it.score.guide.verdict}</p>}
                   {open === i && (
                     <div className="row-detail">
                       <h4>{t('report.myAnswer')}</h4>
                       <p>{it.skipped ? t('report.skipped') : it.answer}</p>
-                      {it.score?.improvements.length ? <ul>{it.score.improvements.map((x, j) => <li key={j}>{x}</li>)}</ul> : null}
+                      {it.score?.guide ? <GuideView guide={it.score.guide} compact /> : it.score?.improvements.length ? <ul>{it.score.improvements.map((x, j) => <li key={j}>{x}</li>)}</ul> : null}
                       {it.score?.betterAnswer && (
                         <>
                           <h4>{t('report.better')}</h4>

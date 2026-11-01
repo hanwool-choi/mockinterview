@@ -10,6 +10,7 @@ export type Env = {
   PREFERRED_MODELS?: string;
   PAID_OVERFLOW?: string;
   PAID_MODEL?: string;
+  PAID_MONTHLY_CALLS?: string;
   ALLOWED_ORIGINS?: string;
   EVENTS?: AnalyticsEngineDataset;
 };

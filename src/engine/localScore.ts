@@ -1,9 +1,10 @@
 import { normalizeScore } from '../../shared/grade';
+import { buildGuide } from './guide';
 import type { Lang, Question, Score } from '../../shared/schema';
 
 const FILLERS = { ko: ['음', '어', '그냥', '약간', '뭔가'], en: ['um', 'uh', 'like', 'basically', 'you know'] };
 
-export function localScore(q: Question, answer: string, lang: Lang): Score {
+export function localScore(q: Question, answer: string, lang: Lang, evidence?: string): Score {
   const a = answer.replace(/\s+/g, ' ').trim();
   const low = a.toLowerCase();
   const ko = lang === 'ko';
@@ -47,5 +48,6 @@ export function localScore(q: Question, answer: string, lang: Lang): Score {
     followUp: null, reactions: [], summary: a.slice(0, 80),
   });
   if (s.score < 70 && q.followUpSeeds[0]) s.followUp = { needed: true, askedBy: q.askedBy, text: q.followUpSeeds[0] };
+  s.guide = buildGuide(q, a, lang, s.rubric, miss, s.score, evidence);
   return { ...s, local: true };
 }

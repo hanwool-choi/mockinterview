@@ -47,7 +47,15 @@ export function toMarkdown(report: Report, items: AnswerItem[], names: Record<st
     out.push(`**${t('report.myAnswer')}**`, '', i.answer, '');
     if (i.score) {
       out.push(`**${t('card.score')}: ${i.score.score} (${i.score.grade})**`);
-      if (i.score.improvements.length) out.push('', ...i.score.improvements.map((x) => `- ${x}`));
+      const g = i.score.guide;
+      if (g) {
+        if (g.verdict) out.push('', `> ${g.verdict}`);
+        if (g.star) out.push('', `${t('guide.star')}: ` + (['situation', 'task', 'action', 'result'] as const).map((k) => `${t(`guide.${k}` as Key)}: ${t(`guide.${g.star![k]}` as Key)}`).join(' · '));
+        if (g.fixes.length) out.push('', `**${t('guide.fixes')}**`, ...g.fixes.map((f) => `- **${f.point}**: ${f.how}${f.example ? ` ${lang === 'ko' ? '예)' : 'e.g.'} "${f.example}"` : ''}`));
+        if (g.phrasing.length) out.push('', `**${t('guide.phrasing')}**`, ...g.phrasing.map((p) => `- ~~${p.from}~~ → ${p.to}`));
+        if (g.evidence) out.push('', `**${t('guide.evidence')}**: ${g.evidence}`);
+        if (g.drill) out.push('', `**${t('guide.drill')}**: ${g.drill}`);
+      } else if (i.score.improvements.length) out.push('', ...i.score.improvements.map((x) => `- ${x}`));
       if (i.score.betterAnswer) out.push('', `**${t('report.better')}**`, '', i.score.betterAnswer);
     }
   });

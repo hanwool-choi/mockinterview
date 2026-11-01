@@ -8,7 +8,7 @@ const models = ['m/one:free', 'm/two:free', 'm/three:free'];
 
 function env(extra: Record<string, unknown> = {}) {
   const kv = memKV();
-  kv.put('models:free', JSON.stringify({ at: Date.now(), ids: models }));
+  kv.put('models:free:v2', JSON.stringify({ at: Date.now(), ids: models }));
   return { IV_KV: kv, OPENROUTER_API_KEY: 'test-key', ...extra } as never;
 }
 const chat = (content: string, status = 200) => new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status });
@@ -74,5 +74,85 @@ describe('callJson', () => {
     }) as unknown as typeof fetch;
     const r = await callJson(env({ PAID_OVERFLOW: 'on', PAID_MODEL: 'paid/cheap' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
     expect(r.ok && r.model).toBe('paid/cheap');
+  });
+});
+
+describe('callJson language and health', () => {
+  it('rejects an English reply when validate() requires Korean and moves on', async () => {
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      return chat(m === 'm/one:free' ? '{"a":1,"t":"Provide metrics"}' : '{"a":2,"t":"수치를 제시하세요"}');
+    }) as unknown as typeof fetch;
+    const s = z.object({ a: z.number(), t: z.string() });
+    const r = await callJson(env(), { messages: [], schema: s, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0, t: '' }), validate: (d) => /[가-힣]/.test(d.t) });
+    expect(r.ok && r.model).toBe('m/two:free');
+  });
+  it('marks a 403 model so the next call skips it', async () => {
+    const e = env();
+    let calls: string[] = [];
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      calls.push(m);
+      return m === 'm/one:free' ? new Response('gated', { status: 403 }) : chat('{"a":1}');
+    }) as unknown as typeof fetch;
+    await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    calls = [];
+    await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(calls[0]).toBe('m/two:free');
+  });
+});
+
+describe('paid fallback after the free budget', () => {
+  it('switches to the paid model when free models are slower than the free budget', async () => {
+    const seen: string[] = [];
+    const f = ((_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      seen.push(m);
+      if (m.startsWith('paid/')) return Promise.resolve(chat('{"a":4}'));
+      return new Promise((_, rej) => init.signal?.addEventListener('abort', () => rej(new Error('aborted'))));
+    }) as unknown as typeof fetch;
+    const t0 = Date.now();
+    const r = await callJson(env({ PAID_OVERFLOW: 'on', PAID_MODEL: 'paid/a,paid/b' }), { messages: [], schema, timeoutMs: 1000, freeBudgetMs: 60, deadlineMs: 5000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r.ok && r.model).toBe('paid/a');
+    expect(Date.now() - t0).toBeLessThan(800);
+  });
+  it('tries the next paid model when one returns 402', async () => {
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      if (m === 'paid/a') return new Response('no credit', { status: 402 });
+      if (m === 'paid/b') return chat('{"a":5}');
+      return new Response('', { status: 503 });
+    }) as unknown as typeof fetch;
+    const r = await callJson(env({ PAID_OVERFLOW: 'on', PAID_MODEL: 'paid/a,paid/b' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r.ok && r.model).toBe('paid/b');
+  });
+  it('stops using paid models once the monthly cap is reached', async () => {
+    const e = env({ PAID_OVERFLOW: 'on', PAID_MODEL: 'paid/a', PAID_MONTHLY_CALLS: '1' });
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      return m === 'paid/a' ? chat('{"a":1}') : new Response('', { status: 503 });
+    }) as unknown as typeof fetch;
+    const first = await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    const second = await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(false);
+  });
+});
+
+describe('account-wide free quota', () => {
+  it('skips all free models after a free-models-per-day 429 until reset', async () => {
+    const e = env({ PAID_OVERFLOW: 'on', PAID_MODEL: 'paid/a' });
+    const seen: string[] = [];
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      seen.push(m);
+      if (m.startsWith('paid/')) return chat('{"a":1}');
+      return new Response(JSON.stringify({ error: { message: 'Rate limit exceeded: free-models-per-day', code: 429, metadata: { headers: { 'X-RateLimit-Reset': String(Date.now() + 3_600_000) } } } }), { status: 429 });
+    }) as unknown as typeof fetch;
+    await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    seen.length = 0;
+    const r = await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(seen).toEqual(['paid/a']);
+    expect(r.ok && r.model).toBe('paid/a');
   });
 });

@@ -42,3 +42,15 @@ describe('review fix: score arriving while paused', () => {
     expect(s.phase).toBe('REACT');
   });
 });
+
+describe('report request stays under the byte limit', () => {
+  it('sends only what the report prompt uses, even for 30 answers with full guides', async () => {
+    const { makeReportRequest } = await import('../src/state/requests');
+    const long = '가'.repeat(300);
+    const score = { score: 60, grade: 'C' as const, rubric: { structure: 12, specificity: 12, jobFit: 12, consistency: 12, delivery: 12 }, strengths: [long, long], improvements: [long, long, long], flaggedPhrases: [long], betterAnswer: long.repeat(2), followUp: null, reactions: [], summary: long,
+      guide: { verdict: long, fixes: [{ point: long, how: long, example: long }], phrasing: [{ from: long, to: long }], evidence: long, drill: long } };
+    const req = makeReportRequest({ sid: 's', lang: 'ko', company: '회사', role: '직무', interviewers: [], items: Array.from({ length: 30 }, (_, i) => ({ questionId: `q${i}`, stage: 'experience' as const, score })) });
+    expect(bytes(JSON.stringify(req))).toBeLessThan(LIMITS.reportBytes);
+    expect(req.items[0].score.score).toBe(60);
+  });
+});

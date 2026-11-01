@@ -29,3 +29,34 @@ describe('getFreeModels', () => {
     expect(await getFreeModels({ IV_KV: kv2 } as never, failing)).toEqual(['x/y:free']);
   });
 });
+
+describe('model selection hardening (real-run findings)', () => {
+  const MM = (id: string, ctx: number, out: string[] = ['text'], inp: string[] = ['text']) =>
+    ({ id, context_length: ctx, pricing: { prompt: '0', completion: '0' }, architecture: { input_modalities: inp, output_modalities: out } });
+  it('keeps only :free text-to-text chat models', () => {
+    const out = selectFreeModels([
+      MM('google/lyria-3-pro-preview', 1048576, ['text', 'audio'], ['text', 'image']),
+      MM('google/lyria-3-clip-preview', 1048576, ['text', 'audio']),
+      MM('nvidia/nemotron-3.5-super-vl:free', 1000000, ['text'], ['image', 'text']),
+      MM('some/image-gen:free', 64000, ['image']),
+      MM('a/b', 64000),
+    ], []);
+    expect(out).toEqual(['nvidia/nemotron-3.5-super-vl:free']);
+  });
+});
+
+describe('model health', () => {
+  it('skips models marked dead or cooling and keeps the rest in order', async () => {
+    const { markModel, healthyModels } = await import('../../functions/_lib/models');
+    const env = { IV_KV: memKV() } as never;
+    await markModel(env, 'x/gated:free', 403);
+    await markModel(env, 'x/busy:free', 429);
+    expect(await healthyModels(env, ['x/gated:free', 'x/busy:free', 'x/ok:free'])).toEqual(['x/ok:free']);
+  });
+  it('falls back to the full list when every model is unhealthy', async () => {
+    const { markModel, healthyModels } = await import('../../functions/_lib/models');
+    const env = { IV_KV: memKV() } as never;
+    await markModel(env, 'x/a:free', 429);
+    expect(await healthyModels(env, ['x/a:free'])).toEqual(['x/a:free']);
+  });
+});

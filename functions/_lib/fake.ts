@@ -1,4 +1,5 @@
 import { claimLine } from '../../src/engine/templates';
+import { buildGuide } from '../../src/engine/guide';
 import type { PlanRequest, ReportRequest, ScoreRequest } from '../../shared/api';
 import { gradeOf } from '../../shared/grade';
 import type { Expression, Plan, Report, Score, Stage } from '../../shared/schema';
@@ -91,6 +92,7 @@ export function fakeScore(req: ScoreRequest): Score {
     followUp: needed ? { needed: true, askedBy: req.question.askedBy, text: req.question.followUpSeeds[0] ?? (ko ? '조금 더 구체적으로 말씀해 주시겠어요?' : 'Could you be more specific?') } : null,
     reactions: req.interviewers.map((iv) => ({ interviewerId: iv.id, expression: exprFor(score) })),
     summary: a.slice(0, 60),
+    guide: buildGuide(req.question, a, req.lang, rubric, req.question.mustHit.filter((m) => !a.includes(m)), score, req.evidence[0]?.text),
   };
 }
 

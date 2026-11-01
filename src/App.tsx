@@ -41,9 +41,13 @@ export function App() {
     document.title = translate(setup.uiLang, 'app.title');
   }, [setup.uiLang]);
 
-  const setSetup = (s: Setup) => {
-    setSetupState(s);
-    saveSetup(s);
+  // Functional updates apply on top of the latest state, so async callbacks (file extraction) never overwrite each other.
+  const setSetup = (next: Setup | ((prev: Setup) => Setup)) => {
+    setSetupState((prev) => {
+      const s = typeof next === 'function' ? next(prev) : next;
+      saveSetup(s);
+      return s;
+    });
   };
   const [uiTouched, setUiTouched] = useState(false);
   const setUiLang = (l: Lang) => {

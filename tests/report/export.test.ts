@@ -34,3 +34,11 @@ describe('toMarkdown', () => {
     expect(md).toContain('더 나은 답변');
   });
 });
+
+describe('toMarkdown with guide', () => {
+  it('includes verdict, fixes with examples, phrase swaps and the drill', () => {
+    const g = { verdict: '역할이 빠져 회피로 들립니다.', star: { situation: 'ok' as const, task: 'missing' as const, action: 'ok' as const, result: 'weak' as const }, fixes: [{ point: '내 역할', how: '내 몫을 나누세요', example: '제가 맡은 건 정책 정의였습니다.' }], phrasing: [{ from: '팀에서 같이', to: '제가 맡은 부분은' }], evidence: '이력서의 "결제 전환율 61% → 72%"', drill: '30초 버전 말하기' };
+    const md = toMarkdown(report, [{ ...items[0], score: { ...items[0].score!, guide: g } }], { a: '김도윤' }, 'ko');
+    for (const s of ['역할이 빠져 회피로 들립니다.', '제가 맡은 건 정책 정의였습니다.', '팀에서 같이', '30초 버전 말하기', '결과: 약함']) expect(md).toContain(s);
+  });
+});

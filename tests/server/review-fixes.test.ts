@@ -37,7 +37,7 @@ describe('review fix: fail closed in production', () => {
 describe('review fix: overall deadline', () => {
   it('gives up before the deadline even when every model hangs', async () => {
     const kv = memKV();
-    await kv.put('models:free', JSON.stringify({ at: Date.now(), ids: ['a', 'b', 'c'] }));
+    await kv.put('models:free:v2', JSON.stringify({ at: Date.now(), ids: ['a', 'b', 'c'] }));
     const hang = ((_u: string, init: RequestInit) => new Promise((_, rej) => init.signal?.addEventListener('abort', () => rej(new Error('aborted'))))) as unknown as typeof fetch;
     const t0 = Date.now();
     const r = await callJson({ IV_KV: kv, OPENROUTER_API_KEY: 'k' } as never, { messages: [], schema: z.object({ a: z.number() }), timeoutMs: 80, deadlineMs: 120, fetchFn: hang, fake: () => ({ a: 0 }) });
@@ -46,7 +46,7 @@ describe('review fix: overall deadline', () => {
   });
   it('tries the paid overflow model only once', async () => {
     const kv = memKV();
-    await kv.put('models:free', JSON.stringify({ at: Date.now(), ids: ['a'] }));
+    await kv.put('models:free:v2', JSON.stringify({ at: Date.now(), ids: ['a'] }));
     const seen: string[] = [];
     const f = (async (_u: string, init: RequestInit) => {
       seen.push(JSON.parse(String(init.body)).model);
@@ -60,7 +60,7 @@ describe('review fix: overall deadline', () => {
 describe('review fix: followUp.askedBy validated', () => {
   it('blanks an unknown askedBy returned by the model', async () => {
     const kv = memKV();
-    await kv.put('models:free', JSON.stringify({ at: Date.now(), ids: ['m'] }));
+    await kv.put('models:free:v2', JSON.stringify({ at: Date.now(), ids: ['m'] }));
     const env = { IV_KV: kv, OPENROUTER_API_KEY: 'k', DEVICE_SECRET: 's', TURNSTILE_SECRET: 't' } as never;
     const sid = await createSession(env, 'dev');
     const out = { rubric: { structure: 10, specificity: 10, jobFit: 10, consistency: 10, delivery: 10 }, score: 50, followUp: { needed: true, askedBy: '김민수', text: '왜요?' }, reactions: [] };
@@ -69,5 +69,32 @@ describe('review fix: followUp.askedBy validated', () => {
     const r = await handleScore(post('/api/score', { sid, lang: 'ko', question: q, answer: 'a', thread: [], evidence: [], history: [], interviewers: [{ id: 'iv1', role: 'hr', rank: 'lead', gender: 'none', personality: 'warm', seed: 1 }], followUpsUsed: 0, followUpLimit: 1 }), env, f);
     const j = (await r.json()) as { data: { followUp: { askedBy: string } } };
     expect(j.data.followUp.askedBy).toBe('');
+  });
+});
+
+describe('local development', () => {
+  it('allows a real key without Turnstile only on localhost', async () => {
+    const env = { IV_KV: memKV(), OPENROUTER_API_KEY: 'k', DEVICE_SECRET: 'd' } as never;
+    const local = new Request('http://localhost:8788/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    expect((await handleSession(local, env)).status).toBe(200);
+    expect((await handleSession(post('/api/session', {}), env)).status).toBe(503);
+  });
+});
+
+describe('language guard on endpoints', () => {
+  it('score endpoint skips a model that answers a Korean interview in English', async () => {
+    const kv = memKV();
+    await kv.put('models:free:v2', JSON.stringify({ at: Date.now(), ids: ['en/model:free', 'ko/model:free'] }));
+    const env = { IV_KV: kv, OPENROUTER_API_KEY: 'k', DEVICE_SECRET: 's', TURNSTILE_SECRET: 't' } as never;
+    const sid = await createSession(env, 'dev');
+    const mk = (imp: string) => JSON.stringify({ rubric: { structure: 10, specificity: 10, jobFit: 10, consistency: 10, delivery: 10 }, score: 50, improvements: [imp], betterAnswer: imp, followUp: null, reactions: [] });
+    const f = (async (_u: string, init: RequestInit) => {
+      const m = JSON.parse(String(init.body)).model;
+      return new Response(JSON.stringify({ choices: [{ message: { content: m.startsWith('en/') ? mk('Add specific metrics') : mk('수치를 넣으세요') } }] }));
+    }) as unknown as typeof fetch;
+    const q = { id: 'q1', stage: 'experience', askedBy: 'iv1', text: 't', intent: '', mustHit: [], redFlags: [], evidenceIds: [], answerOutline: '', followUpSeeds: [] };
+    const r = await handleScore(post('/api/score', { sid, lang: 'ko', question: q, answer: 'a', thread: [], evidence: [], history: [], interviewers: [{ id: 'iv1', role: 'hr', rank: 'lead', gender: 'none', personality: 'warm', seed: 1 }], followUpsUsed: 0, followUpLimit: 1 }), env, f);
+    const j = (await r.json()) as { model: string };
+    expect(j.model).toBe('ko/model:free');
   });
 });

@@ -156,5 +156,17 @@
   "stage.closing": "Closing",
   "panel.turnstileError": "Bot check failed (code {code}). Try disabling ad blockers or reloading. If it persists, the site owner must add this domain to the Turnstile widget.",
   "panel.turnstileWait": "Checking you're human…",
-  "room.routeLabel": "Interview route"
+  "room.routeLabel": "Interview route",
+  "guide.star": "Answer structure (STAR)",
+  "guide.situation": "Situation",
+  "guide.task": "Task",
+  "guide.action": "Action",
+  "guide.result": "Result",
+  "guide.ok": "present",
+  "guide.weak": "weak",
+  "guide.missing": "missing",
+  "guide.fixes": "How to strengthen it",
+  "guide.phrasing": "Say it differently",
+  "guide.evidence": "Evidence to cite",
+  "guide.drill": "Next drill"
 }

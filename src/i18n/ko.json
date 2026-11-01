@@ -156,5 +156,17 @@
   "stage.closing": "마무리",
   "panel.turnstileError": "자동 입력 방지 확인에 실패했어요(코드 {code}). 광고 차단 확장을 끄거나 새로고침해 보세요. 계속되면 운영자가 Turnstile 허용 도메인에 이 주소를 추가해야 해요.",
   "panel.turnstileWait": "자동 입력 방지 확인 중…",
-  "room.routeLabel": "면접 진행 노선"
+  "room.routeLabel": "면접 진행 노선",
+  "guide.star": "답변 구조 (STAR)",
+  "guide.situation": "상황",
+  "guide.task": "역할",
+  "guide.action": "행동",
+  "guide.result": "결과",
+  "guide.ok": "충분",
+  "guide.weak": "약함",
+  "guide.missing": "빠짐",
+  "guide.fixes": "이렇게 보완하세요",
+  "guide.phrasing": "표현 바꾸기",
+  "guide.evidence": "근거로 꺼낼 문장",
+  "guide.drill": "다음 연습"
 }

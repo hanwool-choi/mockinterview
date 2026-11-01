@@ -61,6 +61,17 @@ export type Grade = (typeof GRADES)[number];
 
 export const ReactionSchema = z.object({ interviewerId: str, expression: ExpressionSchema, line: str.optional() });
 
+const StarPart = z.enum(['ok', 'weak', 'missing']).catch('missing');
+export const GuideSchema = z.object({
+  verdict: str.default(''),
+  star: z.object({ situation: StarPart, task: StarPart, action: StarPart, result: StarPart }).optional(),
+  fixes: z.array(z.object({ point: str, how: str, example: str.default('') })).default([]),
+  phrasing: z.array(z.object({ from: str, to: str })).default([]),
+  evidence: str.default(''),
+  drill: str.default(''),
+});
+export type Guide = z.infer<typeof GuideSchema>;
+
 export const ScoreSchema = z.object({
   score: point,
   grade: z.enum(GRADES).default('C'),
@@ -73,6 +84,7 @@ export const ScoreSchema = z.object({
   followUp: z.object({ needed: z.boolean(), askedBy: str.default(''), text: str.default('') }).nullable().default(null),
   reactions: z.array(ReactionSchema).default([]),
   summary: str.default(''),
+  guide: GuideSchema.optional(),
 });
 export type Score = z.infer<typeof ScoreSchema> & { local?: boolean };
 

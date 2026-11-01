@@ -1,4 +1,5 @@
 import { Icon } from './Icon';
+import { GuideView } from './Guide';
 import type { Lang, Question, Score } from '../../shared/schema';
 import { useT, type Key } from '../i18n';
 
@@ -37,13 +38,14 @@ export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: 
           </li>
         ))}
       </ul>
+      {score.guide && <GuideView guide={score.guide} />}
       {!!score.strengths.length && (
         <div className="fb good">
           <h4>{t('card.strengths')}</h4>
           <ul>{score.strengths.map((x, i) => <li key={i}>{x}</li>)}</ul>
         </div>
       )}
-      {!!score.improvements.length && (
+      {!score.guide?.fixes.length && !!score.improvements.length && (
         <div className="fb fix">
           <h4>{t('card.improve')}</h4>
           <ul>{score.improvements.map((x, i) => <li key={i}>{x}</li>)}</ul>

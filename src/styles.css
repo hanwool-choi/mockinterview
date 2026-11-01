@@ -337,6 +337,29 @@ details[open] > summary .icon { transform: rotate(90deg); }
 .lang-notes { font-size: 0.9rem; padding-left: 1.1rem; }
 .score-card footer { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.9rem; position: sticky; bottom: -1rem; background: var(--ground); padding: 0.5rem 0; }
 
+/* ---------- per-answer guide ---------- */
+.guide { margin: 0.4rem 0 0.6rem; display: grid; gap: 0.8rem; }
+.guide-verdict { margin: 0; font-weight: 800; font-size: 1.0625rem; line-height: 1.45; }
+.star-line { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); position: relative; }
+.star-line::before { content: ''; position: absolute; left: 12.5%; right: 12.5%; top: 8px; height: 6px; border-radius: 6px; background: var(--line); }
+.star-line li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; font-size: 0.82rem; }
+.star-line .dot { --dot: 22px; border-width: 4px; }
+.star-line .star-ok .dot { background: var(--line-deep); border-color: var(--line-deep); }
+.star-line .star-weak .dot { background: var(--mark); }
+.star-line .star-missing .dot { background: var(--ground); }
+.star-line .star-missing b { color: var(--bad); }
+.guide-block h4 { font-size: 0.92rem; margin: 0 0 0.35rem; }
+.fixes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.fixes li { display: grid; gap: 0.15rem; font-size: 0.92rem; }
+.fixes b { color: var(--warn); font-size: 0.86rem; }
+.fixes q { quotes: '“' '”'; background: var(--line-pale); padding: 0.4rem 0.6rem; border-radius: 8px; font-size: 0.9rem; }
+.swaps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; font-size: 0.9rem; }
+.swaps li { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.3fr); gap: 0.5rem; align-items: start; }
+.swaps s { color: var(--bad); text-decoration-thickness: 2px; }
+.guide-note { margin: 0; font-size: 0.9rem; }
+.guide-note b { display: block; font-size: 0.86rem; color: var(--line-deep); margin-bottom: 0.1rem; }
+.guide.compact .star-line { max-width: 360px; }
+
 /* ---------- report ---------- */
 .report-hero { display: flex; gap: 2rem; align-items: center; margin-bottom: 2.5rem; }
 .report-hero .report-meta { font-weight: 700; color: var(--line-deep); margin-bottom: 0.4rem; }
@@ -379,6 +402,7 @@ details[open] > summary .icon { transform: rotate(90deg); }
 .row-toggle { text-align: left; font-weight: 700; text-decoration: none; }
 .stage-tag { font-size: 0.78rem; font-weight: 800; color: var(--line-deep); margin-right: 0.4em; }
 .row-detail { margin-top: 0.6rem; font-size: 0.95rem; }
+.row-verdict { margin: 0.3rem 0 0; font-size: 0.9rem; color: var(--ink-2); }
 .row-detail h4 { font-size: 0.9rem; margin: 0.7rem 0 0.25rem; }
 .report-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.5rem; flex-wrap: wrap; }
 .rate { display: flex; align-items: center; justify-content: center; gap: 0.2rem; margin-top: 2rem; font-weight: 600; }
