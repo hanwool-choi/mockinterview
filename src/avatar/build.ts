@@ -1,5 +1,5 @@
 import {
-  BoxGeometry, CanvasTexture, CapsuleGeometry, CircleGeometry, Color, CylinderGeometry, DataTexture, Group, Mesh,
+  BoxGeometry, CanvasTexture, DoubleSide, CapsuleGeometry, CircleGeometry, Color, CylinderGeometry, DataTexture, Group, Mesh,
   MeshBasicMaterial, MeshToonMaterial, NearestFilter, RedFormat, SphereGeometry, TorusGeometry, type Material, type Object3D,
 } from 'three';
 import type { FaceState } from './expression';
@@ -42,53 +42,53 @@ export type CharacterRig = {
 
 const HEAD_R = 0.3;
 
-function buildHair(look: Look): Object3D[] {
+export function buildHair(look: Look): Object3D[] {
   const mat = toon(look.hair.color);
+  mat.side = DoubleSide; // partial shells: show the inside where the face opening is
   const out: Object3D[] = [];
-  const cap = (scale = 1.06, thetaLen = Math.PI * 0.55) => {
-    const m = mesh(new SphereGeometry(HEAD_R * scale, 24, 16, 0, Math.PI * 2, 0, thetaLen), mat);
-    m.rotation.x = -0.25;
+  // Crown: hairline sits above the brows so the face is never covered.
+  const crown = (scale = 1.07) => {
+    const m = mesh(new SphereGeometry(HEAD_R * scale, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.36), mat);
+    m.rotation.x = -0.32;
     return m;
   };
+  // Back/side shell with an open wedge in front of the face (phi = π/2 is +z, the face).
+  const shell = (thetaLen: number, scale = 1.08, wedge = 1.05) =>
+    mesh(new SphereGeometry(HEAD_R * scale, 28, 16, Math.PI / 2 + wedge, Math.PI * 2 - wedge * 2, 0, thetaLen), mat);
   switch (look.hair.style) {
     case 'bald': {
-      const side = mesh(new TorusGeometry(HEAD_R * 0.98, 0.05, 6, 20, Math.PI * 1.2), mat, 0, -0.02, -0.02);
-      side.rotation.set(Math.PI / 2 - 0.2, 0, Math.PI * 0.9);
-      out.push(side);
+      for (const side of [-1, 1]) {
+        const tuft = mesh(new SphereGeometry(0.09, 14, 10), mat, side * 0.27, -0.01, -0.07);
+        tuft.scale.set(0.55, 0.9, 1.2);
+        out.push(tuft);
+      }
       break;
     }
     case 'short':
-      out.push(cap(1.07, Math.PI * 0.5));
+      out.push(crown(), shell(Math.PI * 0.55));
       break;
     case 'side': {
-      out.push(cap(1.07, Math.PI * 0.52));
-      const sweep = mesh(new SphereGeometry(0.16, 16, 10), mat, -0.12, 0.2, 0.17);
-      sweep.scale.set(1.4, 0.5, 0.7);
-      sweep.rotation.z = 0.35;
+      out.push(crown(), shell(Math.PI * 0.55));
+      const sweep = mesh(new SphereGeometry(0.17, 18, 12), mat, -0.1, 0.24, 0.13);
+      sweep.scale.set(1.35, 0.42, 0.8);
+      sweep.rotation.z = 0.3;
       out.push(sweep);
       break;
     }
-    case 'bob': {
-      out.push(cap(1.09, Math.PI * 0.55));
-      const back = mesh(new CylinderGeometry(HEAD_R * 1.08, HEAD_R * 1.12, 0.36, 24, 1, true, Math.PI * 0.6, Math.PI * 1.8), mat, 0, -0.04, -0.01);
-      back.rotation.y = 0;
-      out.push(back);
+    case 'bob':
+      out.push(crown(1.09), shell(Math.PI * 0.72, 1.1, 1.0));
       break;
-    }
     case 'long': {
-      out.push(cap(1.09, Math.PI * 0.55));
-      const back = mesh(new BoxGeometry(0.56, 0.62, 0.16), mat, 0, -0.18, -0.2);
+      out.push(crown(1.09), shell(Math.PI * 0.74, 1.1, 1.0));
+      const back = mesh(new CapsuleGeometry(0.2, 0.36, 6, 16), mat, 0, -0.3, -0.16);
+      back.scale.set(1.25, 1, 0.55);
       out.push(back);
-      const l = mesh(new BoxGeometry(0.1, 0.42, 0.14), mat, -0.29, -0.12, 0.02);
-      const r = mesh(new BoxGeometry(0.1, 0.42, 0.14), mat, 0.29, -0.12, 0.02);
-      out.push(l, r);
+      for (const side of [-1, 1]) out.push(mesh(new CapsuleGeometry(0.06, 0.34, 4, 10), mat, side * 0.3, -0.24, -0.04));
       break;
     }
-    case 'bun': {
-      out.push(cap(1.07, Math.PI * 0.52));
-      out.push(mesh(new SphereGeometry(0.12, 16, 12), mat, 0, 0.26, -0.2));
+    case 'bun':
+      out.push(crown(), shell(Math.PI * 0.55), mesh(new SphereGeometry(0.12, 16, 12), mat, 0, 0.27, -0.2));
       break;
-    }
   }
   return out;
 }

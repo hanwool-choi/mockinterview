@@ -1,5 +1,5 @@
 // Dev-only visual check for the 3D panel (not part of the production build).
-import { lookFor } from './look';
+import { lookFor, type HairStyle } from './look';
 import { InterviewStage } from './stage';
 import type { Expression, InterviewerConfig } from '../../shared/schema';
 
@@ -11,7 +11,8 @@ const all: InterviewerConfig[] = [
   { id: 'd', role: 'design', rank: 'lead', gender: 'female', personality: 'warm', seed: 11 },
 ];
 const cfgs = all.slice(0, Number(q.get("n") ?? 4));
-const stage = new InterviewStage(document.getElementById('c') as HTMLCanvasElement, cfgs.map((c, i) => ({ cfg: c, look: lookFor(c), name: ['이서연', '박준호', '김도윤', '최지아'][i], title: ['인사 과장', '개발 사원', '상무', '디자인 팀장'][i] })), { lowPower: false, reducedMotion: false });
+const hairs = (q.get('hair') ?? '').split(',').filter(Boolean) as HairStyle[];
+const stage = new InterviewStage(document.getElementById('c') as HTMLCanvasElement, cfgs.map((c, i) => ({ cfg: c, look: lookFor(c, hairs[i] ? { hairStyle: hairs[i] } : {}), name: ['이서연', '박준호', '김도윤', '최지아'][i], title: ['인사 과장', '개발 사원', '상무', '디자인 팀장'][i] })), { lowPower: false, reducedMotion: false });
 const exprs = (q.get('e') ?? 'smile,tilt,frown,nod').split(',') as Expression[];
 setTimeout(() => cfgs.forEach((c, i) => stage.setExpression(c.id, exprs[i % exprs.length])), 300);
 if (q.get('speak')) stage.setSpeaking(q.get('speak'));

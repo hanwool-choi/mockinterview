@@ -2,7 +2,9 @@
 // Starts `wrangler pages dev dist` unless BASE_URL is set.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const require = createRequire(import.meta.url);
 let chromium;
@@ -14,7 +16,7 @@ let server;
 let BASE = process.env.BASE_URL;
 if (!BASE) {
   BASE = 'http://localhost:8799';
-  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY='], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
+  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY=', '--persist-to', mkdtempSync(join(tmpdir(), 'iv-e2e-'))], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
   // Kill the whole process group (npx → wrangler → workerd) on any exit, so no stale server keeps the port.
   const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch {} };
   process.on('exit', stop);
