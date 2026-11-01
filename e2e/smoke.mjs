@@ -16,7 +16,7 @@ let server;
 let BASE = process.env.BASE_URL;
 if (!BASE) {
   BASE = 'http://localhost:8799';
-  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY=', '--persist-to', mkdtempSync(join(tmpdir(), 'iv-e2e-'))], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
+  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY=', '--binding', 'OPENROUTER_API_KEY=', '--persist-to', mkdtempSync(join(tmpdir(), 'iv-e2e-'))], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
   // Kill the whole process group (npx → wrangler → workerd) on any exit, so no stale server keeps the port.
   const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch {} };
   process.on('exit', stop);
@@ -94,10 +94,31 @@ async function uploadBoth(browser) {
   return lens;
 }
 
+// Image upload: a PNG is read by the server's vision route (fake mode returns demo text).
+async function uploadImage(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(`${BASE}/?fast=1`);
+  await page.getByTestId('lang-ko').click();
+  await page.getByTestId('upload-jd').setInputFiles(new URL('./fixtures/jd.png', import.meta.url).pathname);
+  await page.getByTestId('ocr-note-jd').waitFor({ timeout: 30000 }).catch(() => {});
+  const text = await page.locator('.doc-field').nth(0).locator('textarea').inputValue();
+  // A scanned (image-only) PDF is rendered page by page and read the same way.
+  await page.getByTestId('upload-resume').setInputFiles(new URL('./fixtures/scanned.pdf', import.meta.url).pathname);
+  await page.getByTestId('ocr-note-resume').waitFor({ timeout: 30000 }).catch(() => {});
+  const scanned = await page.locator('.doc-field').nth(1).locator('textarea').inputValue();
+  await page.close();
+  return { text, scanned };
+}
+
 let failed = false;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
   const lens = await uploadBoth(browser);
+  const ocr = await uploadImage(browser);
+  const pages = ocr.scanned.split('이미지에서 읽은 이력서').length - 1;
+  const ocrOk = ocr.text.includes('이미지에서 읽은 채용공고') && pages === 2;
+  console.log(`${ocrOk ? 'PASS' : 'FAIL'} upload-image: png=${JSON.stringify(ocr.text.slice(0, 24))} scannedPdfPages=${pages}`);
+  if (!ocrOk) failed = true;
   const upOk = lens.every((n) => n > 200);
   console.log(`${upOk ? 'PASS' : 'FAIL'} upload-both: resume=${lens[0]} portfolio=${lens[1]}`);
   if (!upOk) failed = true;

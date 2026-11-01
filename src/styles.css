@@ -263,6 +263,7 @@ button.q-row.on { background: var(--pen-pale); }
 .seg button { background: var(--ground-2); padding: 0.6em 1.2em; border-radius: var(--r-round); font-weight: 700; }
 .seg button.on { background: var(--ink); color: #fff; }
 .seg .years { width: 92px; }
+.files-hint { margin: 0 0 0.8rem; }
 .doc-field { background: var(--ground-2); border-radius: var(--r-panel); padding: 1.1rem 1.2rem; margin-bottom: 1rem; }
 .doc-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.6rem; }
 .doc-head > label:first-child { font-size: 1.05rem; }

@@ -28,7 +28,7 @@
   "prep.paste": "여기에 붙여넣거나 파일을 올리세요 (PDF·DOCX·TXT, 10MB 이하)",
   "prep.upload": "파일 올리기",
   "prep.reading": "읽는 중…",
-  "prep.scanned": "글자를 거의 찾지 못했어요. 스캔 이미지 PDF라면 텍스트를 직접 붙여넣어 주세요.",
+  "prep.scanned": "글자를 거의 찾지 못했어요. 내용을 직접 붙여넣어 주세요.",
   "prep.tooBig": "10MB 이하 파일만 올릴 수 있어요.",
   "prep.masked": "개인정보 {n}건을 가렸어요",
   "prep.chars": "{n}자",
@@ -191,5 +191,12 @@
   "sheet.progress": "문항 진행",
   "sheet.ice": "시작",
   "sheet.hidden": "점수는 마지막에 공개",
-  "sheet.star": "답변 구조 점검"
+  "sheet.star": "답변 구조 점검",
+  "prep.filesHint": "PDF·DOCX·TXT와 이미지(JPG·PNG·WebP)를 올릴 수 있어요. 여러 파일을 고르면 순서대로 이어 붙입니다.",
+  "prep.ocrProgress": "이미지 읽는 중 ({i}/{n})…",
+  "prep.ocrDone": "이미지 {n}장에서 글자를 읽었어요. 틀린 곳이 없는지 확인해 주세요.",
+  "prep.ocrFail": "이미지 {n}장을 읽지 못했어요. 그 부분은 직접 붙여넣어 주세요.",
+  "prep.ocrQuota": "오늘 이미지 읽기 한도를 다 써서 {n}장을 읽지 못했어요. 내일 다시 올리거나 텍스트를 붙여넣어 주세요.",
+  "prep.tooMany": "한 번에 {n}개까지 올릴 수 있어요.",
+  "prep.privacy4": "이미지와 스캔 PDF는 글자를 읽기 위해 AI 제공사로 그대로 보내지고, 개인정보 가리기는 읽은 뒤에 적용됩니다. 연락처나 사진이 보이는 부분은 잘라서 올려 주세요."
 }

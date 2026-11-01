@@ -41,6 +41,13 @@ export const api = {
   },
   plan: async (req: PlanRequest) => unwrap(await post<ApiResult<Plan>>('/api/plan', req, 200_000)),
   score: async (req: ScoreRequest, timeoutMs = 95_000) => unwrap(await post<ApiResult<Score>>('/api/score', req, timeoutMs)),
+  /** Reads text from one image with the server's vision model. */
+  async ocr(image: string, kind: 'jd' | 'resume' | 'portfolio', lang: 'ko' | 'en'): Promise<{ ok: true; text: string } | { ok: false; reason: 'quota' | 'error' }> {
+    const r = await post<ApiResult<{ text: string }>>('/api/ocr', { image, kind, lang }, 100_000);
+    if (r.status === 429) return { ok: false, reason: 'quota' };
+    const d = unwrap(r);
+    return d?.text ? { ok: true, text: d.text } : { ok: false, reason: 'error' };
+  },
   report: async (req: ReportRequest) => unwrap(await post<ApiResult<Report>>('/api/report', req, 130_000)),
   track(name: 'start' | 'complete' | 'drop' | 'rating' | 'fallback', label = '', value = 0) {
     try {

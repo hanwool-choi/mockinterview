@@ -28,7 +28,7 @@
   "prep.paste": "Paste here or upload a file (PDF, DOCX, TXT up to 10MB)",
   "prep.upload": "Upload file",
   "prep.reading": "Reading…",
-  "prep.scanned": "We found almost no text. If this is a scanned PDF, please paste the text instead.",
+  "prep.scanned": "We found almost no text. Please paste the content instead.",
   "prep.tooBig": "Files must be 10MB or smaller.",
   "prep.masked": "Masked {n} personal details",
   "prep.chars": "{n} chars",
@@ -191,5 +191,12 @@
   "sheet.progress": "Questions",
   "sheet.ice": "Start",
   "sheet.hidden": "Scores revealed at the end",
-  "sheet.star": "Answer structure"
+  "sheet.star": "Answer structure",
+  "prep.filesHint": "Upload PDF, DOCX, TXT or images (JPG, PNG, WebP). Pick several files and they are joined in order.",
+  "prep.ocrProgress": "Reading image {i} of {n}…",
+  "prep.ocrDone": "Read the text from {n} image(s). Please check it for mistakes.",
+  "prep.ocrFail": "Could not read {n} image(s). Please paste that part yourself.",
+  "prep.ocrQuota": "Today's image-reading limit is used up, so {n} image(s) were not read. Try again tomorrow or paste the text.",
+  "prep.tooMany": "Up to {n} files at a time.",
+  "prep.privacy4": "Images and scanned PDFs are sent as they are to the AI provider to read the text; masking applies after reading. Crop out contact details or photos before uploading."
 }

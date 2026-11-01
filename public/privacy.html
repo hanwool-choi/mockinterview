@@ -1,13 +1,14 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>개인정보 처리방침 · Privacy</title>
 <style>body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;line-height:1.7;color:#1b2233}h1{font-size:1.6rem}h2{font-size:1.1rem;margin-top:2rem}</style></head><body>
-<p><a href="/">← AI 모의면접실</a></p>
+<p><a href="/">← 모두의면접관</a></p>
 <h1>개인정보 처리방침</h1>
 <h2>1. 저장하지 않습니다</h2><p>이력서·포트폴리오·채용공고와 면접 답변은 서버에 저장하지 않습니다. 질문 생성과 채점 요청을 처리하는 동안에만 메모리에서 사용하고 즉시 버립니다. 서버 로그에도 본문을 남기지 않습니다. 진행 중인 면접 기록은 사용자의 브라우저(sessionStorage)에만 있으며 탭을 닫으면 사라집니다.</p>
 <h2>2. 보내기 전에 가립니다</h2><p>문서를 보내기 전에 브라우저에서 이메일, 전화번호, 주소, 주민등록번호 형식, 입력한 이름을 자동으로 가립니다. 이름 입력값 자체는 서버로 보내지 않습니다.</p>
-<h2>3. 외부 AI 모델</h2><p>질문 생성·채점에는 OpenRouter를 통한 무료 AI 모델을 사용합니다. 무료 모델 제공사는 입력 내용을 서비스 개선·학습에 활용할 수 있습니다. 민감한 정보는 넣지 마세요.</p>
-<h2>4. 음성</h2><p>음성 듣기는 브라우저 내장 음성을 사용합니다. 말로 답하기(받아쓰기)는 브라우저 기능을 사용하며, 브라우저에 따라 음성이 브라우저 제공사의 서버로 전송될 수 있습니다.</p>
-<h2>5. 이용 통계와 남용 방지</h2><p>면접 시작·완주·평점 같은 익명 이벤트 수만 집계합니다(쿠키 없음). 무료 사용량 관리를 위해 기기별 무작위 토큰과 날짜별 사용 횟수를 2일간 보관하며, 자동화된 남용을 막기 위해 Cloudflare Turnstile을 사용할 수 있습니다.</p>
+<h2>3. 외부 AI 모델</h2><p>질문 생성·채점에는 OpenRouter를 통한 AI 모델을 사용합니다. 무료 모델을 먼저 쓰고, 무료 모델이 응답하지 않을 때만 저가 유료 모델을 씁니다. 무료 모델 제공사는 입력 내용을 서비스 개선·학습에 활용할 수 있습니다. 민감한 정보는 넣지 마세요.</p>
+<h2>4. 이미지와 스캔 PDF</h2><p>이미지(JPG·PNG·WebP)나 스캔 PDF를 올리면, 글자를 읽기 위해 브라우저에서 크기를 줄인 이미지를 OpenRouter를 통해 이미지 인식 AI 모델로 보냅니다. 이미지는 가리기 전에 그대로 전송되므로 연락처나 사진이 보이는 부분은 잘라서 올려 주세요. 읽어 온 글자에는 위 2번의 가리기가 적용되며, 이미지는 서버에 저장하지 않습니다. 남용을 막기 위해 IP 주소의 해시값으로 하루 이미지 읽기 횟수를 2일간 셉니다.</p>
+<h2>5. 음성</h2><p>음성 듣기는 브라우저 내장 음성을 사용합니다. 말로 답하기(받아쓰기)는 브라우저 기능을 사용하며, 브라우저에 따라 음성이 브라우저 제공사의 서버로 전송될 수 있습니다.</p>
+<h2>6. 이용 통계와 남용 방지</h2><p>면접 시작·완주·평점 같은 익명 이벤트 수만 집계합니다(쿠키 없음). 무료 사용량 관리를 위해 기기별 무작위 토큰과 날짜별 사용 횟수를 2일간 보관하며, 자동화된 남용을 막기 위해 Cloudflare Turnstile을 사용할 수 있습니다.</p>
 <hr>
 <h1>Privacy</h1>
-<p>Your documents and answers are not stored on our servers; they are used only in memory to generate questions and scores, then discarded. Emails, phone numbers, addresses, ID numbers and your name are masked in your browser before sending. We use free AI models via OpenRouter whose providers may use inputs for training — leave out sensitive content. Dictation uses your browser's speech service, which may send audio to its provider. We count anonymous events only (no cookies) and keep a random per-device token with daily usage counts for 2 days to enforce free limits.</p>
+<p>Your documents and answers are not stored on our servers; they are used only in memory to generate questions and scores, then discarded. Emails, phone numbers, addresses, ID numbers and your name are masked in your browser before sending. We use AI models via OpenRouter, free models first and a low-cost paid model only as a fallback; free model providers may use inputs for training — leave out sensitive content. Uploaded images and scanned PDFs are downscaled in your browser and sent unmasked to an image-reading model via OpenRouter to extract the text, so crop out contact details or photos first; the extracted text is then masked, and images are never stored. A hash of your IP address and a daily image-reading count are kept for 2 days to prevent abuse. Dictation uses your browser's speech service, which may send audio to its provider. We count anonymous events only (no cookies) and keep a random per-device token with daily usage counts for 2 days to enforce free limits.</p>
 </body></html>
