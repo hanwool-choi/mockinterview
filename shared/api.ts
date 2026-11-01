@@ -43,5 +43,5 @@ export type ReportRequest = {
 export type ApiResult<T> = { ok: true; data: T; model: string } | { ok: false; fallback: true };
 
 /** Byte limits (UTF-8: Hangul is 3 bytes/char). docBytes leaves headroom under planBytes for JSON overhead. */
-export const LIMITS = { planBytes: 120_000, scoreBytes: 48_000, reportBytes: 64_000, docBytes: 100_000 } as const;
+export const LIMITS = { planBytes: 120_000, scoreBytes: 48_000, reportBytes: 64_000, ocrBytes: 2_600_000, docBytes: 100_000 } as const;
 export const SESSION_CAPS = { plan: 1, score: 16, report: 1 } as const;

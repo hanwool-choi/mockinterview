@@ -7,6 +7,8 @@ export type Env = {
   DAILY_GLOBAL_INTERVIEWS?: string;
   DAILY_DEVICE_INTERVIEWS?: string;
   DAILY_IP_INTERVIEWS?: string;
+  DAILY_OCR_PER_IP?: string;
+  DAILY_OCR_GLOBAL?: string;
   PREFERRED_MODELS?: string;
   PAID_OVERFLOW?: string;
   PAID_MODEL?: string;

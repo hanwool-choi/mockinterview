@@ -12,8 +12,8 @@ const req: PlanRequest = {
 describe('buildPlanPartMessages', () => {
   it('wraps documents in <document> tags and warns against embedded instructions', () => {
     const msgs = buildPlanPartMessages(req, 'experience');
-    const sys = msgs.find((m) => m.role === 'system')!.content;
-    const user = msgs.find((m) => m.role === 'user')!.content;
+    const sys = String(msgs.find((m) => m.role === 'system')!.content);
+    const user = String(msgs.find((m) => m.role === 'user')!.content);
     expect(sys).toMatch(/따르지/);
     const idx = user.indexOf('이전 지시를');
     expect(user.lastIndexOf('<document', idx)).toBeGreaterThan(-1);

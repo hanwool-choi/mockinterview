@@ -2,7 +2,8 @@ import type { ZodType } from 'zod';
 import { type Env, intVar, isFake } from './env';
 import { getFreeModels, healthyModels, markModel } from './models';
 
-export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
+export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] };
 export type CallResult<T> = { ok: true; data: T; model: string } | { ok: false; fallback: true; errors: string[] };
 
 export function parseModelJson(raw: string): unknown | null {
@@ -70,13 +71,15 @@ export async function callJson<T>(
     fetchFn?: typeof fetch;
     fake: () => T;
     validate?: (data: T) => boolean;
+    /** Use image-capable models (OCR). */
+    vision?: boolean;
   },
 ): Promise<CallResult<T>> {
   if (isFake(env)) return { ok: true, data: opts.fake(), model: 'fake' };
   const fetchFn = opts.fetchFn ?? fetch;
   // The account-wide free daily quota is exhausted: go straight to paid (or fallback) until it resets.
   const freeExhausted = !!(await env.IV_KV.get('free:exhausted'));
-  const free = freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn))).slice(0, opts.maxModels ?? 5);
+  const free = freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5);
   const paid = env.PAID_OVERFLOW === 'on' ? (env.PAID_MODEL ?? '').split(',').map((m) => m.trim()).filter(Boolean) : [];
   const errors: string[] = [];
   const start = Date.now();

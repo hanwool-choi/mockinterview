@@ -12,13 +12,15 @@ export const DEFAULT_FREE_MODELS = [
 ];
 
 const CACHE_KEY = 'models:free:v2';
+export const DEFAULT_VISION_MODELS = ['nvidia/nemotron-3.5-super-vl:free', 'dots-studio/dots-3-note-preview:free'];
 const TTL_MS = 6 * 3600 * 1000;
 
-export function selectFreeModels(list: OpenRouterModel[], preferred: string[]): string[] {
+export function selectFreeModels(list: OpenRouterModel[], preferred: string[], opts: { vision?: boolean } = {}): string[] {
   // Real-run finding: price-0 lists include music/image generators (e.g. lyria) and paid previews. Keep :free text->text chat models only.
   const textOnly = (m: OpenRouterModel) => {
     const out = m.architecture?.output_modalities;
     const inp = m.architecture?.input_modalities;
+    if (opts.vision && !inp?.includes('image')) return false;
     return (!out || (out.length === 1 && out[0] === 'text')) && (!inp || inp.includes('text'));
   };
   const free = list.filter(
@@ -34,19 +36,20 @@ export function selectFreeModels(list: OpenRouterModel[], preferred: string[]): 
     .map((m) => m.id);
 }
 
-export async function getFreeModels(env: Env, fetchFn: typeof fetch = fetch): Promise<string[]> {
-  const cached = (await env.IV_KV.get(CACHE_KEY, 'json')) as { at: number; ids: string[] } | null;
+export async function getFreeModels(env: Env, fetchFn: typeof fetch = fetch, opts: { vision?: boolean } = {}): Promise<string[]> {
+  const key = opts.vision ? 'models:vision:v1' : CACHE_KEY;
+  const cached = (await env.IV_KV.get(key, 'json')) as { at: number; ids: string[] } | null;
   if (cached && Date.now() - cached.at < TTL_MS && cached.ids.length) return cached.ids;
   try {
     const res = await fetchFn('https://openrouter.ai/api/v1/models');
     if (!res.ok) throw new Error(`models ${res.status}`);
     const body = (await res.json()) as { data: OpenRouterModel[] };
-    const ids = selectFreeModels(body.data ?? [], (env.PREFERRED_MODELS ?? '').split(',').map((s) => s.trim()));
+    const ids = selectFreeModels(body.data ?? [], (env.PREFERRED_MODELS ?? '').split(',').map((s) => s.trim()), opts);
     if (!ids.length) throw new Error('no free models');
-    await env.IV_KV.put(CACHE_KEY, JSON.stringify({ at: Date.now(), ids }));
+    await env.IV_KV.put(key, JSON.stringify({ at: Date.now(), ids }));
     return ids;
   } catch {
-    return cached?.ids?.length ? cached.ids : DEFAULT_FREE_MODELS;
+    return cached?.ids?.length ? cached.ids : opts.vision ? DEFAULT_VISION_MODELS : DEFAULT_FREE_MODELS;
   }
 }
 
