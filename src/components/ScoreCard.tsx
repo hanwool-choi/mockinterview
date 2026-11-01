@@ -1,3 +1,4 @@
+import { Icon } from './Icon';
 import type { Lang, Question, Score } from '../../shared/schema';
 import { useT, type Key } from '../i18n';
 
@@ -55,13 +56,13 @@ export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: 
       )}
       {score.betterAnswer && (
         <details open>
-          <summary>{t('card.better')}</summary>
+          <summary><Icon name="chevron" size={16} />{t('card.better')}</summary>
           <p className="better">{score.betterAnswer}</p>
         </details>
       )}
       {!!score.languageNotes?.length && (
         <details>
-          <summary>{t('card.lang')}</summary>
+          <summary><Icon name="chevron" size={16} />{t('card.lang')}</summary>
           <ul className="lang-notes">
             {score.languageNotes.map((n, i) => (
               <li key={i}>
@@ -73,7 +74,7 @@ export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: 
       )}
       {question?.answerOutline && (
         <details>
-          <summary>{t('card.outline')}</summary>
+          <summary><Icon name="chevron" size={16} />{t('card.outline')}</summary>
           <p>{question.answerOutline}</p>
         </details>
       )}

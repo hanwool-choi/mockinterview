@@ -48,7 +48,7 @@ export const SAMPLE: Record<'ko' | 'en', { company: string; role: string; years:
     role: 'Product Manager',
     years: 5,
     docs: {
-      jd: `GreenMart — Product Manager (3+ years)
+      jd: `GreenMart, Product Manager (3+ years)
 
 Responsibilities
 - Own ordering, checkout and repeat-purchase experiences in our grocery app
@@ -76,10 +76,10 @@ SmallCommerce Lab (Jul 2019 – Feb 2021) Product Planner
 - Built a weekly metrics dashboard (SQL, Looker)
 
 Skills: SQL, GA4, Amplitude, Figma, Jira`,
-      portfolio: `Case study — Subscription 0→1
+      portfolio: `Case study: Subscription 0→1
 - Problem: irregular grocery repurchase cycles caused churn
 - Hypothesis: letting customers choose the cadence improves retention
-- Execution: cadence picker (1/2/4 weeks), skip, swap items — MVP in 8 weeks
+- Execution: cadence picker (1/2/4 weeks), skip, swap items; MVP in 8 weeks
 - Result: 61% 3-month retention; subscriber AOV 1.6x non-subscribers
 - Retro: we underestimated logistics capacity and had a 2-week delay; fixed by moving the order cutoff`,
     },

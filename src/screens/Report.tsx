@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { Icon } from '../components/Icon';
 import type { Report as R } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
 import { faceTarget } from '../avatar/expression';
 import { lookFor } from '../avatar/look';
 import { api } from '../api/client';
+import { LineMap } from '../components/LineMap';
+import { routeStations } from '../landing/route';
 import { RubricBars } from '../components/RubricBars';
 import type { InterviewState } from '../engine/machine';
 import { useT, type Key } from '../i18n';
@@ -18,25 +21,37 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
   const d = report.privateDetail;
   const names = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.displayName]));
   const titles = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.title]));
+  const stationName = Object.fromEntries(routeStations(state.plan, setup.uiLang).map((st) => [st.id, st.label]));
   const verdictFace = p.verdict === 'pass' ? 'smile' : p.verdict === 'hold' ? 'tilt' : 'frown';
 
   return (
     <main className="report" data-testid="report">
       <header className="report-hero">
-        <div className={`grade big grade-${p.grade}`}>{p.grade}</div>
+        <div className={`grade grade-xl grade-${p.grade}`}>{p.grade}</div>
         <div>
-          <p className="eyebrow">
-            {t('report.title')} · {p.company}
-            {p.role ? ` · ${p.role}` : ''}
-          </p>
           <h1>
             {p.score}
             <small>/100</small> <span className={`verdict v-${p.verdict}`}>{t(`report.verdict.${p.verdict}` as Key)}</span>
           </h1>
+          <p className="report-meta">
+            {t('report.title')} · {p.company}
+            {p.role ? ` · ${p.role}` : ''}
+          </p>
           <p className="lead">{p.oneLiner}</p>
           {report.local && <p className="badge">{t('report.local')}</p>}
         </div>
       </header>
+
+      <section className="report-route" style={{ '--count': state.plan.questions.length + 1 } as CSSProperties}>
+        <LineMap
+          size="compact"
+          ariaLabel={t('room.routeLabel')}
+          stations={routeStations(state.plan, setup.uiLang).map((st) => {
+            const scored = state.items.filter((it) => it.questionId === st.id && it.score && !it.skipped);
+            return { ...st, en: '', mark: st.id === 'icebreak' ? undefined : scored[0] ? String(scored[0].score!.score) : '–', state: 'done' as const };
+          })}
+        />
+      </section>
 
       <div className="report-grid">
         <section className="card">
@@ -84,7 +99,7 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
                 <td className="n">{i + 1}</td>
                 <td>
                   <button className="link row-toggle" onClick={() => setOpen(open === i ? null : i)}>
-                    <span className="stage-tag">{t(`stage.${it.stage}` as Key)}</span> {it.asked}
+                    <span className="stage-tag">{stationName[it.questionId] ?? t(`stage.${it.stage}` as Key)}</span> {it.asked}
                   </button>
                   {open === i && (
                     <div className="row-detail">
@@ -136,7 +151,7 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
                 api.track('rating', setup.lang, n);
               }}
             >
-              ★
+              <Icon name="star" size={24} filled />
             </button>
           ))
         )}

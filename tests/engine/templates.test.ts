@@ -35,3 +35,13 @@ describe('fillMissing', () => {
     expect(new Set(filled.questions.map((x) => x.id)).size).toBe(11);
   });
 });
+
+describe('claim quote', () => {
+  it('quotes the line with the most figures, not the header line', () => {
+    const cs = [{ id: 'resume#1', kind: 'resume' as const, text: '홍길동 · 서비스 기획 5년\n[경력] 오늘장보기 (2021.03 ~ 현재)\n- 장바구니 재구매 추천 기능 기획: 재구매율 18% → 27% 개선 (A/B 실험 6주, 표본 12만 명)' }];
+    const p = buildTemplatePlan({ ...input, chunks: cs });
+    const q = p.questions.find((x) => x.stage === 'experience')!;
+    expect(q.text).toContain('재구매율 18%');
+    expect(q.text).not.toContain('홍길동');
+  });
+});

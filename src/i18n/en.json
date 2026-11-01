@@ -1,7 +1,7 @@
 {
-  "app.title": "AI Mock Interview Room",
-  "app.tagline": "3D interviewers who dig into your resume. Free.",
-  "app.demo": "Demo mode · fake AI responses",
+  "app.title": "Modu Interviewer",
+  "app.tagline": "Mock interviews built from your resume",
+  "app.demo": "Demo mode: fake AI replies",
   "start.headline": "Practice interviews like the real thing",
   "start.sub": "Add your resume, portfolio and the job posting. A panel will question you on them, react with their faces, and hand you a full report at the end.",
   "start.lang": "Choose the interview language",
@@ -101,7 +101,7 @@
   "room.scoring": "The panel is taking notes…",
   "room.followUp": "Follow-up",
   "room.paused": "Paused",
-  "room.progress": "{i} / {n}",
+  "room.progress": "Question {i} of {n}",
   "room.closing": "That's all for today. Thank you for your time.",
   "room.intro": "Hello, we are {names}. Thanks for coming in — please make yourself comfortable.",
   "room.making": "Writing your report…",
@@ -155,5 +155,6 @@
   "stage.reverse": "Your questions",
   "stage.closing": "Closing",
   "panel.turnstileError": "Bot check failed (code {code}). Try disabling ad blockers or reloading. If it persists, the site owner must add this domain to the Turnstile widget.",
-  "panel.turnstileWait": "Checking you're human…"
+  "panel.turnstileWait": "Checking you're human…",
+  "room.routeLabel": "Interview route"
 }

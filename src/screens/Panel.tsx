@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Icon } from '../components/Icon';
 import type { Gender, InterviewerConfig, Personality, Rank, Role } from '../../shared/schema';
 import { api } from '../api/client';
 import { Portrait2D } from '../avatar/Portrait2D';
@@ -88,7 +89,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
     <main className="panel-setup">
       <header className="screen-head">
         <button className="link" onClick={onBack}>
-          ← {t('common.back')}
+          <Icon name="arrowLeft" /> {t('common.back')}
         </button>
         <h1>{t('panel.title')}</h1>
         <span />
@@ -131,7 +132,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
                 </select>
               </label>
               <button className="link" onClick={() => patch(i, { seed: iv.seed + 101 })}>
-                ↻ {t('panel.reroll')}
+                <Icon name="shuffle" /> {t('panel.reroll')}
               </button>
             </div>
           </article>
@@ -161,7 +162,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
                 void createTts({ prefer: 'os' }).speak(setup.lang === 'ko' ? '안녕하세요. 오늘 면접에 와주셔서 감사합니다.' : 'Hello, thank you for coming in today.', voiceProfileFor(ivs[0], setup.lang));
               }}
             >
-              ▶ {t('panel.preview')}
+              <Icon name="volume" /> {t('panel.preview')}
             </button>
           )}
         </label>
@@ -183,7 +184,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
         )}
         {ts.needed && !ts.token && !ts.error && <span className="muted">{t('panel.turnstileWait')}</span>}
         <button className="primary big" disabled={busy || (ts.needed && !ts.token)} onClick={start} data-testid="start-interview">
-          {busy ? t('panel.starting') : `${t('panel.start')} →`}
+          {busy ? t('panel.starting') : <>{t('panel.start')} <Icon name="arrowRight" /></>}
         </button>
       </footer>
     </main>

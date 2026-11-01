@@ -42,8 +42,12 @@ const EN: Record<Stage, ((c: Ctx) => T)[]> = {
   closing: [() => ({ text: 'Is there anything else you would like to add before we wrap up?', intent: 'Closing impression', mustHit: ['contribute'], redFlags: ['please hire me'], outline: 'Restate key strength → thanks', seeds: ['', ''] })],
 };
 
-function firstSentence(text: string, max = 60): string {
-  const s = (text.split(/(?<=[.!?。다])\s|\n/)[0] ?? text).trim().replace(/[.。]$/, '');
+/** The line in a passage that carries a claim: most figures wins, bullets and section tags stripped. */
+export function claimLine(text: string, max = 60): string {
+  const lines = text.split(/\n|(?<=[.!?。])\s/).map((l) => l.replace(/^[-•·\s]+/, '').replace(/^\[[^\]]*\]\s*/, '').trim()).filter((l) => l.length > 6);
+  const digits = (l: string) => (l.match(/\d/g) ?? []).length;
+  const best = lines.reduce((a, b) => (digits(b) > digits(a) ? b : a), lines[0] ?? text.trim());
+  const s = best.replace(/[.。]$/, '');
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
@@ -63,7 +67,7 @@ export function buildTemplatePlan(input: { lang: Lang; company: string; role: st
     used[stage] = n + 1;
     const ev = stage === 'experience' ? claims[expN++ % Math.max(1, claims.length)] : undefined;
     const fallbackQuote = input.lang === 'ko' ? '가장 큰 성과를 낸 프로젝트' : 'your most impactful project';
-    const t = bank[stage][n % bank[stage].length]({ company: input.company, role: input.role, career: input.career, quote: ev ? firstSentence(ev.text) : fallbackQuote });
+    const t = bank[stage][n % bank[stage].length]({ company: input.company, role: input.role, career: input.career, quote: ev ? claimLine(ev.text) : fallbackQuote });
     return {
       id: `t${i + 1}`,
       stage,
@@ -81,7 +85,7 @@ export function buildTemplatePlan(input: { lang: Lang; company: string; role: st
   return {
     interviewers: input.interviewers.map((iv, i) => ({ id: iv.id, displayName: (ko ? ['김도윤', '이서연', '박준호', '최지아'] : ['Alex Morgan', 'Jamie Lee', 'Taylor Kim', 'Jordan Park'])[i % 4], title: '', greeting: ko ? '반갑습니다.' : 'Nice to meet you.' })),
     smallTalk: {
-      opening: ko ? ['오시는 길은 괜찮으셨어요?', '긴장 푸시고 평소처럼 편하게 말씀해 주세요.'] : ['How was your trip here today?', 'Please relax — think of this as a conversation.'],
+      opening: ko ? ['오시는 길은 괜찮으셨어요?', '긴장 푸시고 평소처럼 편하게 말씀해 주세요.'] : ['How was your trip here today?', 'Please relax. Think of this as a conversation.'],
       transitions: ko ? ['좋습니다. 다음 질문 드릴게요.', '네, 이어서 여쭤보겠습니다.', '알겠습니다. 주제를 조금 바꿔볼게요.'] : ['Great, next question.', 'Okay, let us move on.', 'Alright, switching topics a little.'],
       acknowledgements: ko ? ['네, 그렇군요.', '음, 알겠습니다.', '좋네요.', '흥미롭네요.'] : ['I see.', 'Got it.', 'Nice.', 'Interesting.'],
     },

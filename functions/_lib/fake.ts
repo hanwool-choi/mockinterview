@@ -1,3 +1,4 @@
+import { claimLine } from '../../src/engine/templates';
 import type { PlanRequest, ReportRequest, ScoreRequest } from '../../shared/api';
 import { gradeOf } from '../../shared/grade';
 import type { Expression, Plan, Report, Score, Stage } from '../../shared/schema';
@@ -12,9 +13,7 @@ export function fakePlan(req: PlanRequest): Plan {
   const ivs = req.interviewers;
   const resume = req.chunks.filter((c) => c.kind !== 'jd');
   const text = (s: Stage, n: number): string => {
-    const src = resume[n % Math.max(1, resume.length)]?.text ?? '';
-    const line = src.split('\n').map((x) => x.replace(/^[-•\s\[\]]+|\[[^\]]*\]/g, '').trim()).find((x) => /\d/.test(x) && x.length > 8) ?? src.slice(0, 40);
-    const quote = line.length > 50 ? line.slice(0, 50) : line;
+    const quote = claimLine(resume[n % Math.max(1, resume.length)]?.text ?? '', 50);
     const ko_: Record<Stage, string> = {
       intro: '먼저 1분 정도 자기소개 부탁드립니다.',
       motivation: `${req.company}에 지원하신 이유가 궁금합니다.`,

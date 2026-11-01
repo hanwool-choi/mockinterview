@@ -8,6 +8,7 @@ import { Prepare } from './screens/Prepare';
 import { Report } from './screens/Report';
 import { Room } from './screens/Room';
 import { Start } from './screens/Start';
+import { COPY } from './landing/copy';
 import { clearRun } from './state/useInterview';
 import { emptySetup, loadSetup, saveSetup, type Setup } from './state/setup';
 
@@ -53,23 +54,29 @@ export function App() {
   return (
     <UiLangContext.Provider value={setup.uiLang}>
       <div className={`app screen-${screen.name}`}>
-        <nav className="topbar no-print">
-          <button className="brand link" onClick={() => setScreen({ name: 'start' })}>
-            <span className="logo" aria-hidden>
-              ◉
-            </span>
+        <header className="topbar no-print">
+          <button className="brand" onClick={() => setScreen({ name: 'start' })}>
+            <Logo />
             {translate(setup.uiLang, 'app.title')}
           </button>
-          {config.fake && <span className="badge demo">{translate(setup.uiLang, 'app.demo')}</span>}
-          <select className="ui-lang-mini" aria-label="UI language" value={setup.uiLang} onChange={(e) => setUiLang(e.target.value as Lang)}>
-            <option value="ko">한국어</option>
-            <option value="en">English</option>
-          </select>
-        </nav>
+          {screen.name === 'start' && (
+            <nav className="top-links" aria-label={translate(setup.uiLang, 'app.title')}>
+              <a href="#route">{COPY[setup.uiLang].nav.route}</a>
+              <a href="#panel">{COPY[setup.uiLang].nav.panel}</a>
+              <a href="#report">{COPY[setup.uiLang].nav.report}</a>
+              <a href="#faq">{COPY[setup.uiLang].nav.faq}</a>
+            </nav>
+          )}
+          <div className="top-right">
+            {config.fake && <span className="demo-note">{translate(setup.uiLang, 'app.demo')}</span>}
+            <select className="ui-lang-mini" aria-label="Language / 언어" value={setup.uiLang} onChange={(e) => setUiLang(e.target.value as Lang)}>
+              <option value="ko">한국어</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </header>
         {screen.name === 'start' && (
           <Start
-            uiLang={setup.uiLang}
-            onUiLang={setUiLang}
             onPick={(lang) => {
               setSetup({ ...setup, lang, uiLang: uiTouched ? setup.uiLang : lang });
               setScreen({ name: 'prepare' });
@@ -102,10 +109,24 @@ export function App() {
           />
         )}
         <footer className="site-foot no-print">
-          <a href="/privacy.html">{translate(setup.uiLang, 'footer.privacy')}</a>
-          <a href="/terms.html">{translate(setup.uiLang, 'footer.terms')}</a>
+          {screen.name === 'start' && <p className="foot-mark" aria-hidden="true">{translate(setup.uiLang, 'app.title')}</p>}
+          <div className="foot-row">
+            <span>{translate(setup.uiLang, 'app.tagline')}</span>
+            <a href="/privacy.html">{translate(setup.uiLang, 'footer.privacy')}</a>
+            <a href="/terms.html">{translate(setup.uiLang, 'footer.terms')}</a>
+          </div>
         </footer>
       </div>
     </UiLangContext.Provider>
+  );
+}
+
+/** Wordmark symbol: a station on the line. */
+function Logo() {
+  return (
+    <svg className="logo" width="30" height="18" viewBox="0 0 30 18" aria-hidden="true">
+      <rect x="0" y="6" width="30" height="6" rx="3" fill="var(--line)" />
+      <circle cx="15" cy="9" r="7" fill="var(--ground)" stroke="var(--ink)" strokeWidth="3" />
+    </svg>
   );
 }

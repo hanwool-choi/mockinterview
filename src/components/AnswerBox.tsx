@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from './Icon';
 import type { Lang, Stage } from '../../shared/schema';
 import { estimateSpeechSec, STAGE_TARGET_SEC } from '../engine/machine';
 import { useT } from '../i18n';
@@ -90,7 +91,7 @@ export function AnswerBox({ lang, stage, enabled, icebreak, onSubmit, onSkip, in
                 }
               }}
             >
-              {listening ? `■ ${t('room.micStop')}` : `🎙 ${t('room.mic')}`}
+              {listening ? <><Icon name="stop" /> {t('room.micStop')}</> : <><Icon name="mic" /> {t('room.mic')}</>}
             </button>
           )}
           {!icebreak && (

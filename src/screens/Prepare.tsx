@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from '../components/Icon';
 import { extractText } from '../docs/extract';
 import { isLikelyScanned } from '../docs/chunk';
 import { maskPII } from '../docs/mask';
@@ -77,7 +78,7 @@ export function Prepare({ setup, onChange, onBack, onNext }: { setup: Setup; onC
     <main className="prepare">
       <header className="screen-head">
         <button className="link" onClick={onBack}>
-          ← {t('common.back')}
+          <Icon name="arrowLeft" /> {t('common.back')}
         </button>
         <h1>{t('prep.title')}</h1>
         <button
@@ -135,7 +136,7 @@ export function Prepare({ setup, onChange, onBack, onNext }: { setup: Setup; onC
       <footer className="screen-foot">
         {!ready && <span className="muted">{t('prep.need')}</span>}
         <button className="primary big" disabled={!ready} data-testid="to-panel" onClick={onNext}>
-          {t('prep.next')} →
+          {t('prep.next')} <Icon name="arrowRight" />
         </button>
       </footer>
     </main>
