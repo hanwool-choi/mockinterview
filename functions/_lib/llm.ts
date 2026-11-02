@@ -25,7 +25,24 @@ class HttpError extends Error {
   }
 }
 
+/**
+ * Free and cheap models think before answering by default; for our short JSON tasks that made each call
+ * 4-5x slower (score: ~50-60s with thinking, ~10-12s without), so calls ran out of time and fell back.
+ * Reasoning is switched off unless LLM_REASONING=on; a provider that rejects the switch is retried without it.
+ */
 async function chatOnce(env: Env, model: string, messages: ChatMessage[], timeoutMs: number, fetchFn: typeof fetch): Promise<string> {
+  const think = env.LLM_REASONING === 'on';
+  const started = Date.now();
+  try {
+    return await chatRequest(env, model, messages, timeoutMs, fetchFn, !think);
+  } catch (e) {
+    const left = timeoutMs - (Date.now() - started);
+    if (!think && e instanceof HttpError && e.status === 400 && left > 1000) return chatRequest(env, model, messages, left, fetchFn, false);
+    throw e;
+  }
+}
+
+async function chatRequest(env: Env, model: string, messages: ChatMessage[], timeoutMs: number, fetchFn: typeof fetch, noReasoning: boolean): Promise<string> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
@@ -38,7 +55,7 @@ async function chatOnce(env: Env, model: string, messages: ChatMessage[], timeou
         'HTTP-Referer': 'https://ai-mock-interview-4rq.pages.dev',
         'X-Title': 'AI Mock Interview',
       },
-      body: JSON.stringify({ model, messages, temperature: 0.6 }),
+      body: JSON.stringify({ model, messages, temperature: 0.6, ...(noReasoning ? { reasoning: { enabled: false } } : {}) }),
     });
     if (!res.ok) {
       if (res.status === 429) {

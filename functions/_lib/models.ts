@@ -55,7 +55,8 @@ export async function getFreeModels(env: Env, fetchFn: typeof fetch = fetch, opt
 
 /** Remember failing models so the next call skips them: gated/removed for a day, rate-limited for a few minutes. */
 export async function markModel(env: Env, model: string, status: number): Promise<void> {
-  const ttl = status === 403 || status === 404 || status === 400 ? 24 * 3600 : status === 402 ? 600 : status === 429 || status >= 500 ? 180 : 0;
+  // 400 is often a transient provider error ('Provider returned error'), so it only rests the model briefly.
+  const ttl = status === 403 || status === 404 ? 24 * 3600 : status === 402 || status === 400 ? 600 : status === 429 || status >= 500 ? 180 : 0;
   if (!ttl) return;
   await env.IV_KV.put(`model:bad:${model}`, String(status), { expirationTtl: Math.max(60, ttl) });
 }

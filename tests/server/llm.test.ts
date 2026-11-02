@@ -24,6 +24,26 @@ describe('parseModelJson', () => {
 });
 
 describe('callJson', () => {
+  it('turns model reasoning off by default (thinking made each call 4-5x slower)', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const f = (async (_u: string, init: RequestInit) => (bodies.push(JSON.parse(String(init.body))), chat('{"a":1}'))) as unknown as typeof fetch;
+    await callJson(env(), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(bodies[0].reasoning).toEqual({ enabled: false });
+    await callJson(env({ LLM_REASONING: 'on' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(bodies[1].reasoning).toBeUndefined();
+  });
+  it('retries once without the reasoning switch when a provider rejects it', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const f = (async (_u: string, init: RequestInit) => {
+      const b = JSON.parse(String(init.body));
+      bodies.push(b);
+      return b.reasoning ? new Response('{"error":{"code":400}}', { status: 400 }) : chat('{"a":7}');
+    }) as unknown as typeof fetch;
+    const r = await callJson(env(), { messages: [], schema, timeoutMs: 5000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r).toEqual({ ok: true, data: { a: 7 }, model: 'm/one:free' });
+    expect(bodies.length).toBe(2);
+  });
+
   it('moves to the next model on 429', async () => {
     const seen: string[] = [];
     const f = (async (_u: string, init: RequestInit) => {

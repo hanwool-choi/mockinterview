@@ -12,6 +12,8 @@ export type Env = {
   PREFERRED_MODELS?: string;
   PAID_OVERFLOW?: string;
   PAID_MODEL?: string;
+  /** 'on' lets models think before answering (much slower); off by default. */
+  LLM_REASONING?: string;
   PAID_MONTHLY_CALLS?: string;
   ALLOWED_ORIGINS?: string;
   EVENTS?: AnalyticsEngineDataset;
