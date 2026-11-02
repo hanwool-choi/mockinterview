@@ -25,3 +25,15 @@ describe('inLanguage: catches broken Korean seen in the real run', () => {
     expect(inLanguage('en', ['Explain your role in the 결제 project'])).toBe(true);
   });
 });
+
+describe('score validation covers coaching and reactions', () => {
+  it('rejects Chinese characters inside guide text and reactions (seen in the 2026-11-02 run)', async () => {
+    const { scoreTexts } = await import('../../functions/api/score');
+    const base = { strengths: ['좋습니다'], improvements: ['수치를 붙이세요'], betterAnswer: '고쳐 쓴 답변입니다', followUp: null, reactions: [{ interviewerId: 'a', expression: 'frown', line: '기본 소양이欠여되어 보입니다.' }],
+      guide: { verdict: '확장성瓶颈을 설명해야 합니다', star: null, fixes: [{ point: '근거', how: '숫자를 대세요', example: '' }], phrasing: [{ from: 'a', to: '바꾼 문장' }], evidence: '', drill: '연습' } };
+    const texts = scoreTexts(base as never);
+    expect(texts).toContain('확장성瓶颈을 설명해야 합니다');
+    expect(texts).toContain('기본 소양이欠여되어 보입니다.');
+    expect(inLanguage('ko', texts)).toBe(false);
+  });
+});
