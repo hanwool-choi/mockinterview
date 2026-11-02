@@ -26,10 +26,10 @@ describe('reserveSlot', () => {
 });
 
 describe('bumpSessionCall', () => {
-  it('caps score at 16 and plan at 1; unknown session is rejected', async () => {
+  it('caps score at 24 and plan at 1; unknown session is rejected', async () => {
     const env = { IV_KV: memKV() } as never;
     const sid = await createSession(env, 'dev');
-    for (let i = 0; i < 16; i++) expect(await bumpSessionCall(env, sid, 'score')).toBe('ok');
+    for (let i = 0; i < 24; i++) expect(await bumpSessionCall(env, sid, 'score')).toBe('ok');
     expect(await bumpSessionCall(env, sid, 'score')).toBe('limit');
     expect(await bumpSessionCall(env, sid, 'plan')).toBe('ok');
     expect(await bumpSessionCall(env, sid, 'plan')).toBe('limit');

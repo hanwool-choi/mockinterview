@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { initialState, reduce, type InterviewState } from '../../src/engine/machine';
+import { followUpsLeft, initialState, MAX_FOLLOWUPS_TOTAL, reduce, type InterviewState } from '../../src/engine/machine';
 import type { Plan, Score } from '../../shared/schema';
 import { iv, q } from './fixtures';
 
@@ -58,6 +58,14 @@ describe('machine', () => {
     s = run(s, { type: 'NEXT' }, { type: 'ANSWER_SUBMIT', text: 'y' }, { type: 'SCORE_READY', score: sc(40, true) }, { type: 'NEXT' });
     expect(s.phase).toBe('ASK');
     expect(s.followUpsUsed).toBe(2);
+  });
+  it('stops follow-ups once the interview-wide budget is spent', () => {
+    // Six follow-ups already happened earlier in the interview.
+    const base = toAnswering('real', 'pressure');
+    const earlier = Array.from({ length: MAX_FOLLOWUPS_TOTAL }, (_, i) => ({ questionId: `x${i}`, stage: 'intro' as const, asked: '?', askedBy: 'a', answer: '.', followUp: true }));
+    const s = run({ ...base, items: earlier }, { type: 'ANSWER_SUBMIT', text: 'x' }, { type: 'SCORE_READY', score: sc(40, true) }, { type: 'NEXT' });
+    expect(s.phase).toBe('TRANSITION');
+    expect(followUpsLeft(s)).toBe(0);
   });
   it('real mode never enters FEEDBACK', () => {
     const s = run(toAnswering('real'), { type: 'ANSWER_SUBMIT', text: 'good' }, { type: 'SCORE_READY', score: sc(80) }, { type: 'NEXT' });

@@ -10,7 +10,7 @@ import { mostSenior } from '../engine/assign';
 import { followUpLimit } from '../engine/assign';
 import { localReport } from '../engine/localReport';
 import { localScore } from '../engine/localScore';
-import { currentAsker, currentQuestion, currentText, initialState, reduce, type InterviewEvent, type InterviewState } from '../engine/machine';
+import { currentAsker, currentQuestion, currentText, followUpsLeft, initialState, reduce, type InterviewEvent, type InterviewState } from '../engine/machine';
 import { adjustReactions } from '../engine/reactions';
 import { buildTemplatePlan, fillMissing } from '../engine/templates';
 import { ackFor, dedupeQuestions, sanitizeFollowUp } from '../engine/dialogue';
@@ -189,7 +189,9 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       const req: ScoreRequest = makeScoreRequest({
         sid, lang: L, question: { ...q, text: item.asked }, answer: item.answer, thread: cur.thread.slice(0, -1),
         evidence: [...ev.values()], history: cur.items.slice(0, -1).map((i) => i.score?.summary ?? '').filter(Boolean).slice(-6),
-        interviewers: ivs, followUpsUsed: cur.followUpsUsed, followUpLimit: followUpLimit(asker.personality),
+        interviewers: ivs, followUpsUsed: cur.followUpsUsed,
+        // No budget left: the limit equals what was used, so the server drops any follow-up.
+        followUpLimit: followUpsLeft(cur) > 0 ? followUpLimit(asker.personality) : cur.followUpsUsed,
         asked: [...askedRef.current], upcoming: cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text),
       });
       const upcoming = cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text);

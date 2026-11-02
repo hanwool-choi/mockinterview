@@ -42,6 +42,10 @@ export const currentQuestion = (s: InterviewState): Question | undefined => s.pl
 export const currentAsker = (s: InterviewState): string => s.pendingFollowUp?.askedBy || currentQuestion(s)?.askedBy || s.interviewers[0]?.id;
 export const currentText = (s: InterviewState): string => s.pendingFollowUp?.text ?? currentQuestion(s)?.text ?? '';
 
+/** Follow-ups across the whole interview: enough pressure without doubling its length (a real run had 15 for 11 questions). */
+export const MAX_FOLLOWUPS_TOTAL = 6;
+export const followUpsLeft = (s: InterviewState): number => Math.max(0, MAX_FOLLOWUPS_TOTAL - s.items.filter((i) => i.followUp).length);
+
 function limitFor(s: InterviewState): number {
   const q = currentQuestion(s);
   const iv = s.interviewers.find((i) => i.id === q?.askedBy) ?? s.interviewers[0];
@@ -53,7 +57,7 @@ const answerPhase = (s: InterviewState): Phase => (currentQuestion(s)?.stage ===
 function afterReact(s: InterviewState): InterviewState {
   const last = s.items[s.items.length - 1];
   const fu = last?.score?.followUp;
-  if (fu?.needed && fu.text && s.followUpsUsed < limitFor(s)) {
+  if (fu?.needed && fu.text && s.followUpsUsed < limitFor(s) && followUpsLeft(s) > 0) {
     return { ...s, phase: 'ASK', followUpsUsed: s.followUpsUsed + 1, pendingFollowUp: { text: fu.text, askedBy: fu.askedBy || currentQuestion(s)!.askedBy } };
   }
   return { ...s, phase: 'TRANSITION' };
