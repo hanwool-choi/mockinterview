@@ -131,6 +131,8 @@ export async function callJson<T>(
       errors.push(e instanceof Error ? e.message : String(e));
     }
   }
+  // Model names and error kinds only: never request or response content.
+  console.warn(`llm fallback after ${Date.now() - start}ms: ${errors.join(' | ') || 'no models available'}`);
   return { ok: false, fallback: true, errors };
 }
 

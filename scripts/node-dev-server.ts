@@ -17,14 +17,24 @@ const vars = Object.fromEntries(
     .split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]),
 );
 const store = new Map<string, string>();
-const kv = { get: async (k: string, t?: unknown) => { const v = store.get(k); return v == null ? null : t === 'json' ? JSON.parse(v) : v; }, put: async (k: string, v: string) => void store.set(k, v), delete: async (k: string) => void store.delete(k) };
+// Honors expirationTtl like Cloudflare KV, so model health flags and quota marks expire here too.
+const expires = new Map<string, number>();
+const live = (k: string) => (expires.has(k) && expires.get(k)! <= Date.now() ? (store.delete(k), expires.delete(k), false) : store.has(k));
+const kv = {
+  get: async (k: string, t?: unknown) => { if (!live(k)) return null; const v = store.get(k)!; return t === 'json' ? JSON.parse(v) : v; },
+  put: async (k: string, v: string, o?: { expirationTtl?: number }) => { store.set(k, v); if (o?.expirationTtl) expires.set(k, Date.now() + o.expirationTtl * 1000); else expires.delete(k); },
+  delete: async (k: string) => { store.delete(k); expires.delete(k); },
+};
 const env = { ...vars, IV_KV: kv, DAILY_DEVICE_INTERVIEWS: '50', DAILY_IP_INTERVIEWS: '50' } as never;
 const LOG = process.env.LLM_LOG === '1';
 const realFetch = globalThis.fetch;
 const loggingFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const t0 = Date.now();
   const r = await realFetch(input, init);
-  if (LOG && String(input).includes('chat/completions')) console.log(`[llm] ${JSON.parse(String(init?.body)).model} -> ${r.status} in ${Date.now() - t0}ms`);
+  if (LOG && String(input).includes('chat/completions')) {
+    const extra = r.ok ? '' : ` ${(await r.clone().text().catch(() => '')).slice(0, 200)}`;
+    console.log(`[llm] ${new Date().toISOString().slice(11, 19)} ${JSON.parse(String(init?.body)).model} -> ${r.status} in ${Date.now() - t0}ms${extra}`);
+  }
   return r;
 }) as typeof fetch;
 globalThis.fetch = loggingFetch;
