@@ -6,15 +6,15 @@ export const STAGE_PLAN: Stage[] = ['intro', 'motivation', 'experience', 'experi
 export const QUICK_STAGES: Stage[] = ['intro', 'experience', 'competency'];
 
 type T = { text: string; intent: string; mustHit: string[]; redFlags: string[]; outline: string; seeds: [string, string] };
-type Ctx = { company: string; role: string; quote: string; career: 'new' | 'exp' };
+type Ctx = { company: string; role: string; quote: string; where: string; career: 'new' | 'exp' };
 
 const KO: Record<Stage, ((c: Ctx) => T)[]> = {
   intro: [(c) => ({ text: '먼저 1분 정도로 자기소개 부탁드립니다.', intent: '핵심 경력과 지원 직무의 연결을 빠르게 파악', mustHit: ['경력', c.role, '강점'], redFlags: ['태어나', '성실한 사람'], outline: '한 줄 정체성 → 대표 성과 1~2개(수치) → 이 직무에 기여할 점', seeds: ['그중 가장 자랑하고 싶은 성과 하나만 더 자세히 말씀해 주세요.', '본인을 한 단어로 표현하면요?'] })],
   motivation: [(c) => ({ text: c.career === 'exp' ? `이직을 결심하신 이유와 ${c.company}에 지원하신 이유를 말씀해 주세요.` : `${c.company}에 지원하신 이유가 궁금합니다.`, intent: '지원 동기의 진정성과 회사 이해도', mustHit: [c.company, '직무', '기여'], redFlags: ['연봉', '안정적', '집이 가까'], outline: '회사·직무에 끌린 구체적 이유 → 나의 경험과의 접점 → 입사 후 기여', seeds: ['다른 회사도 지원하셨나요? 그중 저희를 택한 이유는요?', '입사 후 1년 안에 이루고 싶은 것은요?'] })],
   experience: [
-    (c) => ({ text: `이력서에 "${c.quote}"라고 쓰셨는데, 그중 본인이 직접 한 일과 기여도를 수치로 설명해 주시겠어요?`, intent: '이력서 주장의 사실 여부와 개인 기여 검증', mustHit: ['본인 역할', '수치', '과정'], redFlags: ['우리 팀이', '다 같이'], outline: '상황 → 내가 맡은 일 → 의사결정 근거 → 수치 결과 → 배운 점', seeds: ['그 수치는 어떻게 측정하셨나요?', '다시 한다면 무엇을 다르게 하시겠어요?'] }),
-    (c) => ({ text: `"${c.quote}" 과정에서 가장 어려웠던 문제와 해결 방법은 무엇이었나요?`, intent: '문제 해결 방식과 깊이', mustHit: ['문제', '원인', '해결'], redFlags: ['운이 좋'], outline: '문제 정의 → 원인 분석 → 대안 비교 → 실행 → 결과', seeds: ['다른 대안은 왜 버리셨나요?', '그 결정에 반대한 사람은 없었나요?'] }),
-    (c) => ({ text: `"${c.quote}"의 성과가 본인 덕분이라고 할 수 있는 근거는 무엇인가요?`, intent: '성과 귀속의 정직성', mustHit: ['기여', '근거', '협업'], redFlags: ['제가 다 했'], outline: '팀 성과와 내 몫 구분 → 객관적 근거 → 협업 인정', seeds: ['동료들은 당신의 기여를 어떻게 평가할까요?', '실패했던 부분은 없나요?'] }),
+    (c) => ({ text: c.quote ? `${koLead(c)}이 일에서 본인이 직접 맡은 역할과, 그 결과를 어떻게 측정하셨는지 순서대로 설명해 주시겠어요?` : '지금까지 하신 일 중 성과가 가장 컸던 프로젝트 하나를 골라, 어떤 상황에서 무엇을 맡으셨는지부터 말씀해 주시겠어요?', intent: '이력서 주장의 사실 여부와 개인 기여 검증', mustHit: ['본인 역할', '수치', '과정'], redFlags: ['우리 팀이', '다 같이'], outline: '상황 → 내가 맡은 일 → 의사결정 근거 → 수치 결과 → 배운 점', seeds: ['그 수치는 어떻게 측정하셨나요?', '다시 한다면 무엇을 다르게 하시겠어요?'] }),
+    (c) => ({ text: c.quote ? `${koLead(c)}그 결과를 내기까지 가장 어려웠던 문제는 무엇이었고, 어떻게 푸셨나요?` : '일하면서 부딪힌 가장 어려운 문제 하나와, 그걸 어떻게 푸셨는지 말씀해 주세요.', intent: '문제 해결 방식과 깊이', mustHit: ['문제', '원인', '해결'], redFlags: ['운이 좋'], outline: '문제 정의 → 원인 분석 → 대안 비교 → 실행 → 결과', seeds: ['다른 대안은 왜 버리셨나요?', '그 결정에 반대한 사람은 없었나요?'] }),
+    (c) => ({ text: c.quote ? `${koLead(c)}팀이 함께 낸 성과였을 텐데, 그중 본인 몫이라고 할 수 있는 부분과 그 근거는 무엇인가요?` : '팀으로 낸 성과 가운데 본인 몫이라고 할 수 있는 부분과 그 근거를 말씀해 주세요.', intent: '성과 귀속의 정직성', mustHit: ['기여', '근거', '협업'], redFlags: ['제가 다 했'], outline: '팀 성과와 내 몫 구분 → 객관적 근거 → 협업 인정', seeds: ['동료들은 당신의 기여를 어떻게 평가할까요?', '실패했던 부분은 없나요?'] }),
   ],
   competency: [
     (c) => ({ text: `${c.role} 직무에서 가장 자신 있는 역량을 실제 사례로 말씀해 주세요.`, intent: '직무 핵심 역량 보유 여부', mustHit: ['사례', '결과', '역량'], redFlags: ['열심히', '최선을'], outline: '역량 한 줄 → 사례(STAR) → 이 회사에서의 적용', seeds: ['그 역량이 부족했던 순간은 언제였나요?', '그걸 어떻게 키우셨나요?'] }),
@@ -26,13 +26,17 @@ const KO: Record<Stage, ((c: Ctx) => T)[]> = {
   closing: [() => ({ text: '마지막으로 하고 싶은 말씀 있으시면 편하게 해주세요.', intent: '마무리 인상', mustHit: ['기여', '각오'], redFlags: ['뽑아만'], outline: '핵심 강점 한 줄 재강조 → 감사 인사', seeds: ['', ''] })],
 };
 
+/** "오늘장보기에 계실 때 "…"라고 적어 주셨는데요. ": the claim with where it happened, so the question needs no guessing. */
+const koLead = (c: Ctx) => `${c.where} ${quoteKo(c.quote)} 적어 주셨는데요. `;
+const enLead = (c: Ctx) => `${c.where}, you note "${c.quote}". `;
+
 const EN: Record<Stage, ((c: Ctx) => T)[]> = {
   intro: [(c) => ({ text: 'Could you start by telling us about yourself in about a minute?', intent: 'Quick read on background and fit', mustHit: ['experience', c.role, 'strength'], redFlags: ['born in'], outline: 'One-line identity → 1–2 key results (numbers) → value for this role', seeds: ['Tell me more about the result you are proudest of.', 'How would you describe yourself in one word?'] })],
   motivation: [(c) => ({ text: c.career === 'exp' ? `Why are you leaving your current job, and why ${c.company}?` : `Why do you want to join ${c.company}?`, intent: 'Genuine motivation and company understanding', mustHit: [c.company, 'role', 'contribute'], redFlags: ['salary', 'stable'], outline: 'Specific pull → link to my experience → how I will contribute', seeds: ['Which other companies are you considering?', 'What do you want to achieve in your first year?'] })],
   experience: [
-    (c) => ({ text: `Your resume says "${c.quote}". What exactly did you do, and what was your contribution in numbers?`, intent: 'Verify the claim and personal contribution', mustHit: ['my role', 'numbers', 'process'], redFlags: ['we all'], outline: 'Situation → my task → decisions → measurable result → learning', seeds: ['How did you measure that?', 'What would you do differently?'] }),
-    (c) => ({ text: `What was the hardest problem behind "${c.quote}", and how did you solve it?`, intent: 'Problem-solving depth', mustHit: ['problem', 'cause', 'solution'], redFlags: ['lucky'], outline: 'Define → root cause → options → execution → result', seeds: ['Why did you reject the alternatives?', 'Did anyone disagree?'] }),
-    (c) => ({ text: `How can you show that the result of "${c.quote}" was due to you?`, intent: 'Honest attribution', mustHit: ['contribution', 'evidence', 'team'], redFlags: ['I did everything'], outline: 'Separate team vs. my share → objective evidence → credit others', seeds: ['How would your peers rate your contribution?', 'What did not go well?'] }),
+    (c) => ({ text: c.quote ? `${enLead(c)}What was your own part in that, and how did you measure the result?` : 'Pick the project you are proudest of. What was the situation, and what did you own?', intent: 'Verify the claim and personal contribution', mustHit: ['my role', 'numbers', 'process'], redFlags: ['we all'], outline: 'Situation → my task → decisions → measurable result → learning', seeds: ['How did you measure that?', 'What would you do differently?'] }),
+    (c) => ({ text: c.quote ? `${enLead(c)}What was the hardest problem along the way, and how did you solve it?` : 'Tell us about the hardest problem you faced at work and how you solved it.', intent: 'Problem-solving depth', mustHit: ['problem', 'cause', 'solution'], redFlags: ['lucky'], outline: 'Define → root cause → options → execution → result', seeds: ['Why did you reject the alternatives?', 'Did anyone disagree?'] }),
+    (c) => ({ text: c.quote ? `${enLead(c)}That was likely a team effort. Which part was yours, and how can you show it?` : 'Think of a team result. Which part was yours, and how can you show it?', intent: 'Honest attribution', mustHit: ['contribution', 'evidence', 'team'], redFlags: ['I did everything'], outline: 'Separate team vs. my share → objective evidence → credit others', seeds: ['How would your peers rate your contribution?', 'What did not go well?'] }),
   ],
   competency: [
     (c) => ({ text: `What is your strongest skill for this ${c.role} role? Please give a real example.`, intent: 'Core competency', mustHit: ['example', 'result', 'skill'], redFlags: ['hard-working', 'passionate'], outline: 'Skill → STAR example → how it applies here', seeds: ['When was that skill not enough?', 'How did you develop it?'] }),
@@ -44,36 +48,112 @@ const EN: Record<Stage, ((c: Ctx) => T)[]> = {
   closing: [() => ({ text: 'Is there anything else you would like to add before we wrap up?', intent: 'Closing impression', mustHit: ['contribute'], redFlags: ['please hire me'], outline: 'Restate key strength → thanks', seeds: ['', ''] })],
 };
 
-/** The line in a passage that carries a claim: most figures wins, bullets and section tags stripped. */
-export function claimLine(text: string, max = 60): string {
-  const lines = text.split(/\n|(?<=[.!?。])\s/).map((l) => l.replace(/^[-•·\s]+/, '').replace(/^\[[^\]]*\]\s*/, '').trim()).filter((l) => l.length > 6);
-  // A claim line carries results (%, →, 배, 명, 건...); dates like 2019.07 ~ 2021.02 are not claims.
-  const weight = (l: string) => {
-    const noDates = l.replace(/\d{4}[.\-/]\d{1,2}(?:[.\-/]\d{1,2})?|\d{4}\s*년/g, '');
-    return (noDates.match(/\d/g) ?? []).length + (/[%→]|배|명|건|분|일|시간|원/.test(noDates) ? 5 : 0);
-  };
-  const best = lines.reduce((a, b) => (weight(b) > weight(a) ? b : a), lines[0] ?? text.trim());
-  const s = best.replace(/[.。]$/, '');
-  return s.length > max ? s.slice(0, max) + '…' : s;
+const isBullet = (l: string) => /^\s*[-•·*]/.test(l);
+const stripBullet = (l: string) => l.replace(/^[-•·*\s]+/, '').replace(/^\[[^\]]*\]\s*/, '').trim();
+/** How much a line reads like a result: figures and result markers (%, →, 배, 명...); dates like 2019.07 ~ 2021.02 do not count. */
+const claimWeight = (l: string) => {
+  const noDates = l.replace(/\d{4}[.\-/]\d{1,2}(?:[.\-/]\d{1,2})?|\d{4}\s*년|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}/g, '');
+  return (noDates.match(/\d/g) ?? []).length + (/[%→]|배|명|건|분|일|시간|원|x\b/.test(noDates) ? 5 : 0);
+};
+
+/** Cut at a word boundary, never mid-word, and drop a trailing parenthetical aside when the claim stands without it. */
+function tidyClaim(line: string, max: number): string {
+  let s = stripBullet(line).replace(/^(?:결과|성과|실행|문제|가설|회고|result|outcome|impact|execution)\s*[:：]\s*/i, '').replace(/[.。]$/, '');
+  const noAside = s.replace(/\s*\([^()]*\)\s*$/, '');
+  if (noAside.length >= 15) s = noAside;
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const at = Math.max(cut.lastIndexOf(', '), cut.lastIndexOf(' '));
+  return (at > max * 0.5 ? cut.slice(0, at) : cut).replace(/[,:;·\s]+$/, '');
 }
 
-function claimChunks(chunks: Chunk[]): Chunk[] {
-  const docs = chunks.filter((c) => c.kind !== 'jd');
-  const digits = (c: Chunk) => (c.text.match(/\d/g) ?? []).length;
-  return [...docs].sort((a, b) => digits(b) - digits(a));
+/** Skills lists and section headers are not achievements, even when they hold digits (GA4, 2021.03). */
+const notClaim = (l: string) => placeOf(l) !== undefined || /^\s*(?:skills?|역량|기술|tools?|자격|학력|education)\b|^\s*\[(?:역량|기술|skills?|자격|학력)/i.test(l.trim());
+const lineScore = (l: string) => (notClaim(l) ? -100 : claimWeight(l) + (isBullet(l) ? 1 : 0));
+
+/** Every achievement line, spread across documents: each chunk's best first, then each one's second best, and so on. */
+export function claimCandidates(chunks: Chunk[]): { chunk: Chunk; pick: number }[] {
+  const per = chunks
+    .filter((c) => c.kind !== 'jd')
+    .map((c) => {
+      const lines = c.text.split(/\n/).filter((l) => stripBullet(l).length > 6);
+      const picks = lines.map((l, i) => ({ i, w: lineScore(l) })).filter((x) => x.w >= 5).sort((a, b) => b.w - a.w);
+      return { c, picks };
+    })
+    .filter((x) => x.picks.length)
+    .sort((a, b) => b.picks[0].w - a.picks[0].w);
+  const out: { chunk: Chunk; pick: number }[] = [];
+  for (let round = 0; out.length < 12 && per.some((x) => x.picks[round]); round++) for (const x of per) if (x.picks[round]) out.push({ chunk: x.c, pick: x.picks[round].i });
+  return out;
+}
+
+/** Quote with the right particle: 이라고 after a final consonant (개선, 단축, 120), 라고 otherwise (1.6배, 21%). */
+export function quoteKo(q: string): string {
+  const last = q.trim().slice(-1);
+  const code = last.charCodeAt(0) - 0xac00;
+  const batchim = code >= 0 && code <= 11171 ? code % 28 !== 0 : /[013678]$/.test(last) || /[LMNRlmnr]$/.test(last);
+  return `"${q}"${batchim ? '이라고' : '라고'}`;
+}
+
+type Place = { kind: 'company' | 'project'; name: string } | null;
+/** The header a claim sits under: "[경력] 회사 (2021.03 ~ 현재) 직함", "[포트폴리오] 프로젝트", "Company (Mar 2021 – present) Title", "Case study: X". */
+function placeOf(line: string): Place | undefined {
+  const t = line.trim();
+  const tagged = t.match(/^\[([^\]]+)\]\s*(.+)$/);
+  if (tagged) {
+    const [, tag, rest] = tagged;
+    if (/포트폴리오|프로젝트|portfolio|project|case/i.test(tag)) return { kind: 'project', name: rest.trim() };
+    if (/경력|경험|career|experience|work|employment/i.test(tag)) return { kind: 'company', name: rest.split(/[(|·,]/)[0].trim() };
+    return null; // [역량], [학력]...: a section that is not a place
+  }
+  const labelled = t.match(/^(case study|project|프로젝트|포트폴리오)\s*[:：]\s*(.+)$/i);
+  if (labelled) return { kind: 'project', name: labelled[2].trim() };
+  if (!isBullet(t) && /\(\s*(?:[A-Za-z]{3,}\.?\s*)?\d{4}/.test(t)) return { kind: 'company', name: t.split('(')[0].trim() };
+  return undefined;
+}
+
+/**
+ * The claim to ask about and where it comes from, so a question never throws a bare number at the candidate
+ * ("35% 개선에서 기여한 부분은?") but says whose work it was ("오늘장보기에 계실 때 '…'라고 적어 주셨는데요").
+ */
+export function claimAnchor(text: string, lang: Lang, max = 80, pick?: number): { claim: string; where: string } {
+  const lines = text.split(/\n/).filter((l) => stripBullet(l).length > 6);
+  const scored = lines.map((l, i) => ({ l, i, w: lineScore(l) }));
+  const best = pick !== undefined && scored[pick] ? scored[pick] : scored.reduce((a, b) => (b.w > a.w ? b : a), scored[0] ?? { l: text, i: 0, w: 0 });
+  let place: Place = null;
+  for (let i = best.i - 1; i >= 0; i--) {
+    const p = placeOf(lines[i]);
+    if (p !== undefined) {
+      place = p;
+      break;
+    }
+  }
+  const ko = lang === 'ko';
+  const where = !place?.name
+    ? ko ? '이력서에' : 'On your resume'
+    : place.kind === 'company'
+      ? ko ? `${place.name}에 계실 때` : `At ${place.name}`
+      : ko ? `포트폴리오의 '${place.name}' 프로젝트에서` : `In your "${place.name}" case study`;
+  return { claim: tidyClaim(best.l, max), where };
+}
+
+/** The line in a passage that carries a claim (used where only the words are needed). */
+export function claimLine(text: string, max = 60): string {
+  return claimAnchor(text, 'ko', max).claim;
 }
 
 export function buildTemplatePlan(input: { lang: Lang; company: string; role: string; career: 'new' | 'exp'; interviewers: InterviewerConfig[]; chunks: Chunk[]; stages?: Stage[] }): Plan {
   const bank = input.lang === 'ko' ? KO : EN;
-  const claims = claimChunks(input.chunks);
+  const claims = claimCandidates(input.chunks);
   const used: Partial<Record<Stage, number>> = {};
   let expN = 0;
   const questions: Question[] = (input.stages ?? STAGE_PLAN).map((stage, i) => {
     const n = used[stage] ?? 0;
     used[stage] = n + 1;
-    const ev = stage === 'experience' ? claims[expN++ % Math.max(1, claims.length)] : undefined;
-    const fallbackQuote = input.lang === 'ko' ? '가장 큰 성과를 낸 프로젝트' : 'your most impactful project';
-    const t = bank[stage][n % bank[stage].length]({ company: input.company, role: input.role, career: input.career, quote: ev ? claimLine(ev.text) : fallbackQuote });
+    const c = stage === 'experience' && claims.length ? claims[expN++ % claims.length] : undefined;
+    const ev = c?.chunk;
+    const anchor = c ? claimAnchor(c.chunk.text, input.lang, 80, c.pick) : null;
+    const t = bank[stage][n % bank[stage].length]({ company: input.company, role: input.role, career: input.career, quote: anchor?.claim ?? '', where: anchor?.where ?? '' });
     return {
       id: `t${i + 1}`,
       stage,

@@ -43,10 +43,11 @@ describe('buildScoreMessages: one call scores the answer and writes the next que
 
 describe('usableNext', () => {
   it('keeps a sized, in-language question and fills the intent from the draft', () => {
-    expect(usableNext(base, { text: '방금 61%에서 72%로 올렸다고 하셨는데, 그중 본인이 결정한 것은 무엇이었나요?', intent: '' })).toEqual({
-      text: '방금 61%에서 72%로 올렸다고 하셨는데, 그중 본인이 결정한 것은 무엇이었나요?',
-      intent: '기여 검증',
-    });
+    const q = '방금 결제 전환율을 61%에서 72%로 올리셨다고 하셨는데, 그중 본인이 결정한 것은 무엇이었나요?';
+    expect(usableNext(base, { text: q, intent: '' })).toEqual({ text: q, intent: '기여 검증' });
+  });
+  it('drops it when it throws a bare figure without saying what it was about', () => {
+    expect(usableNext(base, { text: '방금 61%에서 72%로 올렸다고 하셨는데, 그중 본인이 결정한 것은 무엇이었나요?', intent: '' })).toBeNull();
   });
   it('drops it when not asked for, too short, or in the wrong language', () => {
     expect(usableNext({ ...base, next: undefined }, { text: '질문입니다 충분히 길게', intent: '' })).toBeNull();

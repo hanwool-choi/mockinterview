@@ -32,7 +32,23 @@ const SAFETY = {
 
 
 /** Kept lean on purpose: every field here is paid for on every turn. */
-const SCORE_SHAPE = `{"rubric":{"structure":0-20,"specificity":0-20,"jobFit":0-20,"consistency":0-20,"delivery":0-20},"score":0-100,"strengths":["max 2"],"improvements":["max 2, each quoting the candidate's own words"],"flaggedPhrases":[],"betterAnswer":"<=250 chars","languageNotes":[{"original":"","better":""}],"followUp":{"needed":true,"askedBy":"<id>","text":""} or null,"reactions":[{"interviewerId":"<id>","expression":"smile|nod|tilt|frown|neutral","line":"<short spoken reaction that fits the answer>"}],"summary":"<1 line>","guide":{"verdict":"<one line: how this answer landed with the panel>","star":{"situation":"ok|weak|missing","task":"ok|weak|missing","action":"ok|weak|missing","result":"ok|weak|missing"},"fixes":[max 2 of {"point":"<missing point>","how":"<what to add and how>","example":"<one sentence the candidate could say, using their own facts; [본인 확인] for unknowns>"}],"phrasing":[max 2 of {"from":"<exact phrase from the answer>","to":"<better phrasing>"}],"evidence":"<which line of the resume/portfolio to cite>","drill":"<one practice exercise for next time>"},"next":{"text":"<the next question>","intent":"<what it checks>"} or null}`;
+const SCORE_SHAPE = `{"rubric":{"structure":0-20,"specificity":0-20,"jobFit":0-20,"consistency":0-20,"delivery":0-20},"score":0-100,"strengths":["max 2"],"improvements":["max 2, each quoting the candidate's own words"],"flaggedPhrases":[],"betterAnswer":"<=250 chars","languageNotes":[{"original":"","better":""}],"followUp":{"needed":true,"askedBy":"<id>","text":"<one question on what they just said, max 90 chars>"} or null,"reactions":[{"interviewerId":"<id>","expression":"smile|nod|tilt|frown|neutral","line":"<short spoken reaction that fits the answer>"}],"summary":"<1 line>","guide":{"verdict":"<one line: how this answer landed with the panel>","star":{"situation":"ok|weak|missing","task":"ok|weak|missing","action":"ok|weak|missing","result":"ok|weak|missing"},"fixes":[max 2 of {"point":"<missing point>","how":"<what to add and how>","example":"<one sentence the candidate could say, using their own facts; [본인 확인] for unknowns>"}],"phrasing":[max 2 of {"from":"<exact phrase from the answer>","to":"<better phrasing>"}],"evidence":"<which line of the resume/portfolio to cite>","drill":"<one practice exercise for next time>"},"next":{"text":"<the planned next question on the draft's topic, not a follow-up; one ask, max 110 chars>","intent":"<what it checks>"} or null}`;
+
+/** How real interviewers ask (docs/research/interview-questions.md): context first, one ask, grounded in what was said. */
+const CRAFT = {
+  ko: `질문 작성 원칙(followUp과 next 공통):
+1) 맥락 먼저: 이력서·포트폴리오·답변의 수치를 꺼낼 때는 어디서(회사·프로젝트) 무엇을 해서 나온 수치인지 먼저 말한다. 숫자만 던지지 말 것. 나쁜 예: "35% 개선에서 기여한 부분은요?" 좋은 예: "오늘장보기에서 결제 단계를 줄여 이탈률을 32%에서 21%로 낮추셨다고 했는데, 그중 본인이 직접 결정한 건 무엇이었나요?"
+2) 연결: 방금 답변에서 이어지면 답변 속 표현을 짧게 받아 시작하고("말씀하신 ○○ 얘기가 나와서요"), 주제를 바꾸면 "이번엔 ○○ 쪽을 여쭤볼게요"처럼 전환을 알린다.
+3) 한 번에 하나만 묻는다: '~인지, 그리고 ~는지'처럼 여러 개를 엮지 말 것. 2문장, 110자 이내.
+4) 자료와 답변에 없는 숫자·회사·프로젝트를 지어내지 않는다.
+5) 실제 면접관처럼 본인이 한 일, 판단 근거, 측정 방법, 어려움과 대안, 배운 점 가운데 이 지원자 답변에서 가장 비어 있는 것을 묻는다.`,
+  en: `Question rules (followUp and next):
+1) Context first: when you bring up a figure from the resume, portfolio or answer, say where it came from (company, project) and what was done. Never throw a bare number. Bad: "What was your part in the 35% improvement?" Good: "At FreshDaily you cut checkout drop-off from 32% to 21% by removing steps. Which of those decisions were yours?"
+2) Link: if it follows the last answer, pick up the candidate's own words briefly; if it changes topic, signal it ("Let me switch to ...").
+3) Ask one thing: do not chain several asks with "and". Two sentences, about 25 words.
+4) Never invent figures, companies or projects that are not in the documents or answers.
+5) Like a real interviewer, probe what this answer left most open: own role, reasoning, how it was measured, obstacles and alternatives, lessons.`,
+};
 
 const KO_STYLE = '문체: 자연스러운 한국어 구어체 존댓말. 문서에 없는 영어 단어·한자·일본어를 섞지 말 것(고유명사·약어는 그대로).';
 
@@ -44,9 +60,9 @@ function nextBlock(req: ScoreRequest): string {
   const who = asker ? describeInterviewers([asker], req.lang).replace(/^- /, '') : n.askedBy;
   return req.lang === 'ko'
     ? `다음 질문 작성(next): 다음 순서는 "${n.stage}" 단계, 질문자는 ${who}. 초안: "${n.draft}" (의도: ${n.intent}).
-초안의 의도는 지키되, 지금까지의 답변 요약과 방금 답변, 채용공고 핵심을 근거로 이 지원자에게 맞춘 질문 1~2문장으로 다시 쓴다. 이력서 문장을 인용한 초안이면 그 인용은 유지. 이미 나온 질문과 겹치지 말 것. 질문자의 직무·직급·성격에 맞는 말투. ${KO_STYLE}`
+초안의 의도는 지키되, 지금까지의 답변 요약과 방금 답변, 채용공고 핵심을 근거로 이 지원자에게 맞춘 질문으로 다시 쓴다. 초안이 이력서·포트폴리오 내용을 인용하면 그 사실과 출처(회사·프로젝트)는 살리되 말하듯 자연스럽게 풀어 쓴다. next는 꼬리질문이 아니다: 방금 답변은 연결 한마디로만 받고, 질문 자체는 초안의 주제를 묻는다. followUp과 같은 내용이면 안 된다. 이미 나온 질문과 겹치지 말 것. 질문자의 직무·직급·성격에 맞는 말투. ${KO_STYLE}`
     : `Next question (next): the next step is the "${n.stage}" stage, asked by ${who}. Draft: "${n.draft}" (intent: ${n.intent}).
-Keep the draft's intent but rewrite it for this candidate in 1-2 sentences, grounded in the answers so far, the latest answer and the job posting facts. Keep any resume quote in the draft. Do not repeat earlier questions. Match the asker's role, level and personality.`;
+Keep the draft's intent but rewrite it for this candidate, grounded in the answers so far, the latest answer and the job posting facts. If the draft cites the resume or portfolio, keep the fact and where it came from (company, project), phrased as speech. next is not a follow-up: acknowledge the last answer in a few words at most, then ask about the draft's topic. It must not repeat the followUp. Do not repeat earlier questions. Match the asker's role, level and personality.`;
 }
 
 export function buildScoreMessages(req: ScoreRequest): ChatMessage[] {
@@ -59,13 +75,13 @@ improvements와 guide는 일반론 금지: 지원자가 실제로 한 말을 인
 betterAnswer는 지원자 답변의 사실을 살려 250자 이내로 다시 쓴다(없는 사실 금지, 필요하면 [본인 확인]).
 꼬리질문: 필수 포인트가 빠졌거나 70점 미만이거나 모순이면 followUp.needed=true. 꼬리질문은 지원자가 방금 한 말의 구체적인 부분을 짚어야 하며("방금 ○○라고 하셨는데"), 이미 나온 질문이나 '면접 흐름'에 남은 질문과 겹치면 안 된다.
 reactions의 line은 답변 내용에 맞는 짧은 반응(약한 답에 칭찬 금지). 모든 문장은 한국어.
-${SAFETY.ko}\n${nextBlock(req)}\nJSON 형식:\n${SCORE_SHAPE}`
+${CRAFT.ko}\n${SAFETY.ko}\n${nextBlock(req)}\nJSON 형식:\n${SCORE_SHAPE}`
       : `You are a fair, sharp interview evaluator and coach. Score 5 criteria 0-20 each: structure, specificity (numbers), jobFit, consistency (contradictions/repetition vs earlier answers), delivery (English expression: grammar, vocabulary, naturalness; add languageNotes).
 improvements and guide must be specific: quote what the candidate actually said, say what is missing and exactly what to add. guide.fixes.example is one sentence the candidate could say using their own facts ([verify] for unknowns). guide.phrasing.from is an exact phrase from the answer.
 betterAnswer rewrites the answer in <=250 characters keeping their facts (never invent).
 Follow-up: if key points are missing, score < 70, or contradiction → followUp.needed=true. It must pick up a specific part of what the candidate just said ("You mentioned ..."), and must not repeat any question already asked or still planned.
 reactions.line: a short spoken reaction that fits the answer (no praise for weak answers). Write everything in English.
-${SAFETY.en}\n${nextBlock(req)}\nJSON shape:\n${SCORE_SHAPE}`;
+${CRAFT.en}\n${SAFETY.en}\n${nextBlock(req)}\nJSON shape:\n${SCORE_SHAPE}`;
   const user = [
     `Interviewers:\n${describeInterviewers(req.interviewers, L)}`,
     `Question (${q.stage}, asked by ${q.askedBy}): ${q.text}`,
