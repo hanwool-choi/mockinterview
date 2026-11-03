@@ -600,3 +600,10 @@ main.report { max-width: calc(980px + 2 * var(--margin)); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+.kakao-qr { border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-lg); padding: 1.4rem 1.4rem 1.1rem; width: min(340px, calc(100vw - 32px)); text-align: center; background: #fff; color: var(--ink); }
+.kakao-qr::backdrop { background: rgb(28 18 54 / 0.45); }
+.kakao-qr[open] { display: grid; gap: 0.6rem; justify-items: center; animation: pip-in 280ms var(--ease-out); }
+.kakao-qr b { font-size: 1.05rem; }
+.kakao-qr p { margin: 0; font-size: 0.92rem; color: var(--ink-2); line-height: 1.55; }
+.kakao-qr .qr-code { width: 200px; height: 200px; margin: 0.3rem 0; border: 6px solid #fee500; border-radius: 14px; }
+.kakao-qr .qr-direct { font-size: var(--t-small); color: var(--ink-3); }

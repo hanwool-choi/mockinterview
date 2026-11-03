@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
 import { useT } from '../i18n';
 import { Icon } from './Icon';
+import { opensOnPhone, qrPath } from './qr';
 
 /** Support links from the server config (KAKAOPAY_URL, FAIRY_URL); an empty one hides its button. */
 export type Donate = { kakao: string; fairy: string };
@@ -12,21 +13,72 @@ export const DonateContext = createContext<Donate>(NO_DONATE);
 function SupportButton({ where, small = false }: { where: string; small?: boolean }) {
   const t = useT();
   const { kakao, fairy } = useContext(DonateContext);
+  const [qr, setQr] = useState(false);
   if (!kakao && !fairy) return <span className="support-soon">{t('support.soon')}</span>;
   const size = small ? 'small' : '';
   return (
     <span className="support-buttons">
       {kakao && (
-        <a className={`kakao-btn ${size}`} href={kakao} target="_blank" rel="noopener noreferrer" data-testid="support-kakao" onClick={() => api.track('support_click', `${where}:kakao`)}>
+        <a
+          className={`kakao-btn ${size}`}
+          href={kakao}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="support-kakao"
+          onClick={(e) => {
+            api.track('support_click', `${where}:kakao`);
+            // The transfer link only opens in the KakaoPay app: on a computer, show a QR to scan with the phone instead.
+            if (!opensOnPhone(navigator.userAgent, matchMedia('(pointer: coarse)').matches)) {
+              e.preventDefault();
+              setQr(true);
+            }
+          }}
+        >
           <Icon name="heart" size={16} /> {t('support.kakao')}
         </a>
       )}
+      {qr && kakao && <KakaoQr url={kakao} onClose={() => setQr(false)} />}
       {fairy && (
         <a className={`secondary ${size}`} href={fairy} target="_blank" rel="noopener noreferrer" data-testid="support-fairy" onClick={() => api.track('support_click', `${where}:fairy`)}>
           {t('support.fairy')}
         </a>
       )}
     </span>
+  );
+}
+
+/** A modal with the transfer QR: scan it with the phone camera and KakaoPay opens on the transfer screen. */
+function KakaoQr({ url, onClose }: { url: string; onClose: () => void }) {
+  const t = useT();
+  const ref = useRef<HTMLDialogElement>(null);
+  const { size, d } = qrPath(url);
+  useEffect(() => {
+    const dlg = ref.current;
+    dlg?.showModal();
+    return () => dlg?.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="kakao-qr no-print"
+      aria-labelledby="kakao-qr-title"
+      data-testid="kakao-qr"
+      onClose={onClose}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <button className="pip-close" aria-label={t('support.close')} onClick={onClose}>
+        <Icon name="x" size={16} />
+      </button>
+      <b id="kakao-qr-title">{t('support.qrTitle')}</b>
+      <p>{t('support.qrBody')}</p>
+      <svg className="qr-code" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={t('support.qrAlt')} shapeRendering="crispEdges">
+        <rect width={size} height={size} fill="#fff" />
+        <path d={d} fill="#191600" />
+      </svg>
+      <a className="qr-direct" href={url} target="_blank" rel="noopener noreferrer">
+        {t('support.qrDirect')}
+      </a>
+    </dialog>
   );
 }
 

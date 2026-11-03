@@ -118,8 +118,14 @@ async function supportLinks(browser) {
   const href = await page.getByTestId('support-kakao').first().getAttribute('href', { timeout: 15000 }).catch(() => null);
   const fairy = await page.getByTestId('support-fairy').count();
   await page.screenshot({ path: `${OUT}support-landing.png`, fullPage: true });
+  // On a computer the transfer link cannot open: the button shows a QR to scan with the phone instead.
+  await page.getByTestId('support-kakao').first().click();
+  const qr = await page.getByTestId('kakao-qr').isVisible({ timeout: 5000 }).catch(() => false);
+  await page.screenshot({ path: `${OUT}support-qr.png` });
+  await page.keyboard.press('Escape');
+  const closed = !(await page.getByTestId('kakao-qr').count());
   await page.close();
-  return { href, fairy };
+  return { href, fairy, qr, closed };
 }
 
 let failed = false;
@@ -127,8 +133,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 try {
   const lens = await uploadBoth(browser);
   const sup = await supportLinks(browser);
-  const supOk = sup.href === 'https://qr.kakaopay.com/Ej7lelIaG';
-  console.log(`${supOk ? 'PASS' : 'FAIL'} support-links: kakao=${sup.href} fairyButtons=${sup.fairy}`);
+  const supOk = sup.href === 'https://qr.kakaopay.com/Ej7lelIaG' && sup.qr && sup.closed;
+  console.log(`${supOk ? 'PASS' : 'FAIL'} support-links: kakao=${sup.href} fairyButtons=${sup.fairy} desktopQr=${sup.qr} escCloses=${sup.closed}`);
   if (!supOk) failed = true;
   const ocr = await uploadImage(browser);
   const pages = ocr.scanned.split('이미지에서 읽은 이력서').length - 1;
