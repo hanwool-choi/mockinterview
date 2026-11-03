@@ -123,7 +123,8 @@ async function supportLinks(browser) {
   const qr = await page.getByTestId('kakao-qr').isVisible({ timeout: 5000 }).catch(() => false);
   await page.screenshot({ path: `${OUT}support-qr.png` });
   await page.keyboard.press('Escape');
-  const closed = !(await page.getByTestId('kakao-qr').count());
+  // Closing re-renders after the dialog's close event: wait for it instead of checking at once.
+  const closed = await page.getByTestId('kakao-qr').waitFor({ state: 'detached', timeout: 5000 }).then(() => true, () => false);
   await page.close();
   return { href, fairy, qr, closed };
 }
