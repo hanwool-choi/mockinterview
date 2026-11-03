@@ -27,16 +27,21 @@ export async function verifyDevice(secret: string, token: string): Promise<strin
   return diff === 0 ? id : null;
 }
 
-export async function verifyTurnstile(env: Env, token: string | undefined, ip: string | null): Promise<boolean> {
-  if (!env.TURNSTILE_SECRET) return true;
-  if (!token) return false;
+/** Turnstile check: ok, or Cloudflare's error codes (e.g. invalid-input-secret = wrong secret, timeout-or-duplicate = reused token). */
+export async function checkTurnstile(env: Env, token: string | undefined, ip: string | null): Promise<{ ok: boolean; codes: string[] }> {
+  if (!env.TURNSTILE_SECRET) return { ok: true, codes: [] };
+  if (!token) return { ok: false, codes: ['missing-input-response'] };
   const form = new FormData();
   form.append('secret', env.TURNSTILE_SECRET);
   form.append('response', token);
   if (ip) form.append('remoteip', ip);
   const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
-  const body = (await r.json()) as { success?: boolean };
-  return body.success === true;
+  const body = (await r.json().catch(() => ({}))) as { success?: boolean; 'error-codes'?: string[] };
+  return { ok: body.success === true, codes: (body['error-codes'] ?? []).map(String).slice(0, 3) };
+}
+
+export async function verifyTurnstile(env: Env, token: string | undefined, ip: string | null): Promise<boolean> {
+  return (await checkTurnstile(env, token, ip)).ok;
 }
 
 export function kstDay(d = new Date()): string {

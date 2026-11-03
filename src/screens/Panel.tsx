@@ -85,7 +85,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
       return onStart(r.data.sid);
     }
     ts.reset();
-    setMsg(t('quota.error'));
+    setMsg(`${t('quota.error')} (${r.code})`);
   };
 
   return (

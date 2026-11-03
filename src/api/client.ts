@@ -36,14 +36,16 @@ export const api = {
       return { turnstileSiteKey: '', fake: true };
     }
   },
-  async session(turnstileToken?: string, length: InterviewLength = 'full'): Promise<{ ok: true; data: SessionResponse } | { ok: false; reason: QuotaReason | 'error' }> {
+  async session(turnstileToken?: string, length: InterviewLength = 'full'): Promise<{ ok: true; data: SessionResponse } | { ok: false; reason: QuotaReason | 'error'; code: string }> {
     const deviceToken = localStorage.getItem(DEVICE_KEY) ?? undefined;
-    const r = await post<SessionResponse & { reason?: QuotaReason }>('/api/session', { turnstileToken, deviceToken, length }, 15000);
+    const r = await post<SessionResponse & { reason?: QuotaReason; error?: string }>('/api/session', { turnstileToken, deviceToken, length }, 15000);
     if (r.status === 200 && r.body?.sid) {
       localStorage.setItem(DEVICE_KEY, r.body.deviceToken);
       return { ok: true, data: r.body };
     }
-    return { ok: false, reason: r.status === 429 && r.body?.reason ? r.body.reason : 'error' };
+    // The code says why (shown to the user so a setup problem can be told apart from a network one).
+    const code = r.status === 0 ? 'network' : `${r.status}${r.body?.error ? ` ${r.body.error}` : ''}`;
+    return { ok: false, reason: r.status === 429 && r.body?.reason ? r.body.reason : 'error', code };
   },
   score: async (req: ScoreRequest, timeoutMs = 95_000) => unwrap(await post<ApiResult<Score>>('/api/score', req, timeoutMs)),
   /** Reads text from one image with the server's vision model. */

@@ -1,7 +1,7 @@
 import type { SessionRequest } from '../../shared/api';
 import { isFake, type Env } from '../_lib/env';
 import { guard, json, readJson } from '../_lib/http';
-import { checkOrigin, createSession, deviceSecret, kstDay, randomId, signDevice, verifyDevice, verifyTurnstile } from '../_lib/security';
+import { checkOrigin, createSession, deviceSecret, kstDay, randomId, signDevice, verifyDevice, checkTurnstile } from '../_lib/security';
 import { dailyLeft, paused } from '../_lib/budget';
 
 export async function handleSession(req: Request, env: Env): Promise<Response> {
@@ -10,9 +10,12 @@ export async function handleSession(req: Request, env: Env): Promise<Response> {
     // With a real key the shared budget is at stake: refuse to run without abuse protection configured.
     // Local development (localhost only) may run a real key without Turnstile.
     const local = ['localhost', '127.0.0.1'].includes(new URL(req.url).hostname);
-    if (!isFake(env) && (!env.DEVICE_SECRET || (!env.TURNSTILE_SECRET && !local))) return json(503, { error: 'misconfigured' });
+    if (!isFake(env) && (!env.DEVICE_SECRET || (!env.TURNSTILE_SECRET && !local))) return json(503, { error: `misconfigured ${[!env.DEVICE_SECRET && 'DEVICE_SECRET', !env.TURNSTILE_SECRET && 'TURNSTILE_SECRET'].filter(Boolean).join(',')}` });
     const body = await readJson<SessionRequest>(req, 4_000);
-    if (!local && !(await verifyTurnstile(env, body.turnstileToken, req.headers.get('CF-Connecting-IP')))) return json(403, { error: 'turnstile' });
+    if (!local) {
+      const ts = await checkTurnstile(env, body.turnstileToken, req.headers.get('CF-Connecting-IP'));
+      if (!ts.ok) return json(403, { error: `turnstile ${ts.codes.join(',')}`.trim() });
+    }
     const secret = deviceSecret(env);
     const deviceId = (body.deviceToken && (await verifyDevice(secret, body.deviceToken))) || randomId();
     const day = kstDay();

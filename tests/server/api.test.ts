@@ -61,3 +61,29 @@ describe('api (fake mode)', () => {
     expect((await handleSession(req, env)).status).toBe(403);
   });
 });
+
+describe('session start failures say why', () => {
+  it('names the missing secret on a real-key deployment', async () => {
+    const env = { IV_KV: memKV(), GEMINI_API_KEY: 'g', TURNSTILE_SECRET: 't' } as never;
+    const r = await handleSession(post('/api/session', { turnstileToken: 'x' }), env);
+    expect(r.status).toBe(503);
+    expect(await r.json()).toEqual({ error: 'misconfigured DEVICE_SECRET' });
+  });
+  it('passes on Turnstile error codes (wrong secret vs reused token)', async () => {
+    const env = { IV_KV: memKV(), GEMINI_API_KEY: 'g', TURNSTILE_SECRET: 't', DEVICE_SECRET: 's' } as never;
+    const real = globalThis.fetch;
+    globalThis.fetch = (async () => Response.json({ success: false, 'error-codes': ['invalid-input-secret'] })) as typeof fetch;
+    try {
+      const r = await handleSession(post('/api/session', { turnstileToken: 'x' }), env);
+      expect(r.status).toBe(403);
+      expect(await r.json()).toEqual({ error: 'turnstile invalid-input-secret' });
+    } finally {
+      globalThis.fetch = real;
+    }
+  });
+  it('config lists missing settings by name only', async () => {
+    const { missing } = await import('../../functions/api/config');
+    expect(missing({ GEMINI_API_KEY: 'g', IV_KV: memKV() } as never)).toEqual(['DEVICE_SECRET', 'TURNSTILE_SECRET', 'TURNSTILE_SITEKEY']);
+    expect(missing({} as never)).toEqual([]);
+  });
+});
