@@ -8,8 +8,8 @@ const use = (costUsd: number) => ({ calls: 1, tokensIn: 1000, tokensOut: 200, co
 const DAY = '2026-11-03';
 
 describe('budget gate', () => {
-  it('default caps: quick $0.002, full $0.03 per session', () => {
-    expect(SESSION_BUDGET_USD).toEqual({ quick: 0.002, full: 0.03 });
+  it('default caps: quick $0.02, full $0.10 per session', () => {
+    expect(SESSION_BUDGET_USD).toEqual({ quick: 0.02, full: 0.1 });
   });
 
   it('lets a fresh session through and counts the call', async () => {
@@ -22,7 +22,7 @@ describe('budget gate', () => {
   it('stops a session once its cost reaches the cap for its length', async () => {
     const e = env();
     const sid = await createSession(e, 'dev', 'quick');
-    await charge(e, sid, 'score', 'qwen/qwen3.7-flash', use(0.0021), { day: DAY });
+    await charge(e, sid, 'score', 'gemini:gemini-3.5-flash-lite', use(0.021), { day: DAY });
     const g = await gate(e, sid, 'score', { day: DAY, now: 100_000 });
     expect(g).toMatchObject({ ok: false, status: 429, reason: 'budget' });
   });

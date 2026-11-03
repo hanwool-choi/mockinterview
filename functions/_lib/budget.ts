@@ -21,7 +21,8 @@ export type SessionRecord = { deviceId: string; length: Length; counts: Counts; 
 type Bucket = { calls: number; costMicro: number };
 type DayRecord = { calls: number; tokensIn: number; tokensOut: number; costMicro: number; sessions: number; kinds: Record<string, Bucket>; models: Record<string, Bucket> };
 
-export const SESSION_BUDGET_USD: Record<Length, number> = { quick: 0.002, full: 0.03 };
+/** Defaults when the env vars are unset; wrangler.toml sets the live values. */
+export const SESSION_BUDGET_USD: Record<Length, number> = { quick: 0.02, full: 0.1 };
 export const DAILY_BUDGET_USD = 2;
 /** Minimum gap between two AI calls of one session (report is exempt: it follows the last answer). */
 export const MIN_GAP_MS = 2_000;

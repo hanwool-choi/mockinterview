@@ -10,10 +10,10 @@ id = "8b8d944e356845078ece1c9b81cad409"
 [vars]
 KAKAOPAY_URL = "https://qr.kakaopay.com/Ej7lelIaG"
 FAIRY_URL = ""
-# Cost control: no interview count limit; AI spend is capped per session (quick $0.002, full $0.03) and per day.
+# Cost control: no interview count limit; AI spend is capped per session (quick $0.02, full $0.10, sized for paid Gemini flash-lite) and per day.
 DAILY_BUDGET_USD = "2"
-SESSION_BUDGET_QUICK_USD = "0.002"
-SESSION_BUDGET_FULL_USD = "0.03"
+SESSION_BUDGET_QUICK_USD = "0.02"
+SESSION_BUDGET_FULL_USD = "0.10"
 # Gemini (direct): the GEMINI_API_KEY secret is set in Cloudflare; these models are tried first, in order.
 GEMINI_MODELS = "gemini-3.5-flash-lite,gemini-3.8-flash"
 # paid: token costs are priced into the usage ledger and budgets (free tier would record $0).
