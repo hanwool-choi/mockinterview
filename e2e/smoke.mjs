@@ -110,10 +110,25 @@ async function uploadImage(browser) {
   return { text, scanned };
 }
 
+// Support buttons: the KakaoPay link from wrangler.toml reaches the page.
+async function supportLinks(browser) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await page.goto(`${BASE}/`);
+  const href = await page.getByTestId('support-kakao').first().getAttribute('href', { timeout: 15000 }).catch(() => null);
+  const fairy = await page.getByTestId('support-fairy').count();
+  await page.screenshot({ path: `${OUT}support-landing.png`, fullPage: true });
+  await page.close();
+  return { href, fairy };
+}
+
 let failed = false;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
   const lens = await uploadBoth(browser);
+  const sup = await supportLinks(browser);
+  const supOk = sup.href === 'https://qr.kakaopay.com/Ej7lelIaG';
+  console.log(`${supOk ? 'PASS' : 'FAIL'} support-links: kakao=${sup.href} fairyButtons=${sup.fairy}`);
+  if (!supOk) failed = true;
   const ocr = await uploadImage(browser);
   const pages = ocr.scanned.split('이미지에서 읽은 이력서').length - 1;
   const ocrOk = ocr.text.includes('이미지에서 읽은 채용공고') && pages === 2;

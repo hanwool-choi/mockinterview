@@ -10,6 +10,7 @@ import { handleScore } from '../functions/api/score';
 import { handleReport } from '../functions/api/report';
 import { handleOcr } from '../functions/api/ocr';
 import { isFake } from '../functions/_lib/env';
+import { donateLinks } from '../functions/api/config';
 
 const root = join(import.meta.dirname, '..');
 const vars = Object.fromEntries(
@@ -43,7 +44,7 @@ const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.j
 const port = Number(process.env.PORT || 8796);
 createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://localhost:${port}`);
-  if (url.pathname === '/api/config') return void res.end(JSON.stringify({ turnstileSiteKey: '', fake: isFake(env), donateUrl: (env as { DONATE_URL?: string }).DONATE_URL ?? '' }));
+  if (url.pathname === '/api/config') return void res.end(JSON.stringify({ turnstileSiteKey: '', fake: isFake(env), donate: donateLinks(env) }));
   if (url.pathname === '/api/event') return void res.end('{"ok":true}');
   const h = handlers[url.pathname];
   if (h) {

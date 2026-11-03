@@ -206,5 +206,7 @@
   "support.close": "Close",
   "support.soon": "Support opens soon.",
   "support.inline": "Every interview and report is free. If it helped, please chip in for the AI token cost.",
-  "support.reporting": "Building your report. Everything is free; AI costs are covered by supporters."
+  "support.reporting": "Building your report. Everything is free; AI costs are covered by supporters.",
+  "support.kakao": "Support via KakaoPay",
+  "support.fairy": "Support via Fairy"
 }

@@ -1,7 +1,7 @@
 import type { ApiResult, PlanRequest, QuotaReason, ReportRequest, ScoreRequest, SessionResponse } from '../../shared/api';
 import type { Plan, Report, Score } from '../../shared/schema';
 
-export type AppConfig = { turnstileSiteKey: string; fake: boolean; donateUrl?: string };
+export type AppConfig = { turnstileSiteKey: string; fake: boolean; donate?: { kakao: string; fairy: string } };
 
 async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<{ status: number; body: T | null }> {
   const ctl = new AbortController();

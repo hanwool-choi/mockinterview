@@ -4,8 +4,9 @@ export type Env = {
   DEVICE_SECRET?: string;
   TURNSTILE_SECRET?: string;
   TURNSTILE_SITEKEY?: string;
-  /** Where the 'support the token cost' button points (https only). Empty hides the button. */
-  DONATE_URL?: string;
+  /** Support buttons: KakaoPay transfer-code link (https://qr.kakaopay.com/…) and Fairy project page (https://fairy.hada.io/…). Empty hides a button. */
+  KAKAOPAY_URL?: string;
+  FAIRY_URL?: string;
   DAILY_GLOBAL_INTERVIEWS?: string;
   DAILY_DEVICE_INTERVIEWS?: string;
   DAILY_IP_INTERVIEWS?: string;

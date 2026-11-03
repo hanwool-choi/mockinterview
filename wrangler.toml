@@ -8,6 +8,8 @@ binding = "IV_KV"
 id = "8b8d944e356845078ece1c9b81cad409"
 
 [vars]
+KAKAOPAY_URL = "https://qr.kakaopay.com/Ej7lelIaG"
+FAIRY_URL = ""
 DAILY_GLOBAL_INTERVIEWS = "75"
 DAILY_DEVICE_INTERVIEWS = "3"
 PAID_OVERFLOW = "on"

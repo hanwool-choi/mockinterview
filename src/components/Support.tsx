@@ -3,17 +3,30 @@ import { api } from '../api/client';
 import { useT } from '../i18n';
 import { Icon } from './Icon';
 
-/** Where the support link points; empty until the operator sets DONATE_URL. */
-export const DonateContext = createContext('');
+/** Support links from the server config (KAKAOPAY_URL, FAIRY_URL); an empty one hides its button. */
+export type Donate = { kakao: string; fairy: string };
+export const NO_DONATE: Donate = { kakao: '', fairy: '' };
+export const DonateContext = createContext<Donate>(NO_DONATE);
 
+/** Two ways to chip in: KakaoPay (opens the app on phones, a QR on PC) and Fairy (card, for when KakaoPay is busy). */
 function SupportButton({ where, small = false }: { where: string; small?: boolean }) {
   const t = useT();
-  const url = useContext(DonateContext);
-  if (!url) return <span className="support-soon">{t('support.soon')}</span>;
+  const { kakao, fairy } = useContext(DonateContext);
+  if (!kakao && !fairy) return <span className="support-soon">{t('support.soon')}</span>;
+  const size = small ? 'small' : '';
   return (
-    <a className={`primary ${small ? 'small' : ''}`} href={url} target="_blank" rel="noopener noreferrer" onClick={() => api.track('support_click', where)}>
-      <Icon name="heart" size={16} /> {t('support.cta')}
-    </a>
+    <span className="support-buttons">
+      {kakao && (
+        <a className={`kakao-btn ${size}`} href={kakao} target="_blank" rel="noopener noreferrer" data-testid="support-kakao" onClick={() => api.track('support_click', `${where}:kakao`)}>
+          <Icon name="heart" size={16} /> {t('support.kakao')}
+        </a>
+      )}
+      {fairy && (
+        <a className={`secondary ${size}`} href={fairy} target="_blank" rel="noopener noreferrer" data-testid="support-fairy" onClick={() => api.track('support_click', `${where}:fairy`)}>
+          {t('support.fairy')}
+        </a>
+      )}
+    </span>
   );
 }
 

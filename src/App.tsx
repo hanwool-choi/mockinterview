@@ -9,7 +9,7 @@ import { Report } from './screens/Report';
 import { Room } from './screens/Room';
 import { Start } from './screens/Start';
 import { Icon } from './components/Icon';
-import { DonateContext } from './components/Support';
+import { DonateContext, NO_DONATE } from './components/Support';
 import { COPY } from './landing/copy';
 import { clearRun } from './state/useInterview';
 import { emptySetup, loadSetup, saveSetup, type Setup } from './state/setup';
@@ -64,7 +64,7 @@ export function App() {
 
   return (
     <UiLangContext.Provider value={setup.uiLang}>
-      <DonateContext.Provider value={config.donateUrl ?? ''}>
+      <DonateContext.Provider value={config.donate ?? NO_DONATE}>
       <div className={`app screen-${screen.name}`}>
         <header className="topbar no-print">
           <button className="brand" onClick={() => setScreen({ name: 'start' })}>

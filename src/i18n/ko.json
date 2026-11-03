@@ -206,5 +206,7 @@
   "support.close": "닫기",
   "support.soon": "후원 창구는 곧 열려요.",
   "support.inline": "모든 면접과 리포트는 무료예요. 도움이 되었다면 AI 토큰 비용을 후원해 주세요.",
-  "support.reporting": "리포트를 만드는 동안 잠시만요. 모든 기능은 무료이고, AI 비용은 후원으로 운영됩니다."
+  "support.reporting": "리포트를 만드는 동안 잠시만요. 모든 기능은 무료이고, AI 비용은 후원으로 운영됩니다.",
+  "support.kakao": "카카오페이로 후원",
+  "support.fairy": "Fairy로 후원"
 }

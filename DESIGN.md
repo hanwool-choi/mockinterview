@@ -59,7 +59,7 @@ A friendly, trustworthy AI interview product. White page, a lavender wash (soft 
 - **Verdict badge:** pill in ok/warn/bad soft colours.
 - **Score card:** gradient grade tile, big score, bars, STAR status chips, coaching.
 - **Report:** one white sheet card: meta tiles, bars, total (gradient tile) / grade / verdict, overall opinion tile, per-question steps with scores, interviewer comments with thumbnails.
-- **Support (token cost):** inline note with a pink heart tile and a "토큰 비용 후원하기" button (`DONATE_URL`), and a dismissible corner pop-up shown once per place per session (landing after 12s, room after 3 answers at the top for 15s, report after 2.5s).
+- **Support (token cost):** inline note with a pink heart tile and two buttons: KakaoPay (yellow, `KAKAOPAY_URL`) and Fairy (secondary, `FAIRY_URL`); an unset link hides its button, and a dismissible corner pop-up shown once per place per session (landing after 12s, room after 3 answers at the top for 15s, report after 2.5s).
 
 ## Interviewers
 
