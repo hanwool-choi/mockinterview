@@ -85,11 +85,17 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
             <Icon name="sparkle" size={16} /> {c.badge}
           </p>
           <h1 id="hero-title">
-            {c.h1.split('\n').map((l, i, all) => (
-              <span key={i} className={i === all.length - 1 ? 'hl' : undefined}>
-                {l}
-              </span>
-            ))}
+            {c.h1.split('\n').map((l, i, all) => {
+              if (i < all.length - 1) return <span key={i} className="line">{l}</span>;
+              // Underline only the last phrase, as in the mockup.
+              const cut = l.lastIndexOf(' ');
+              return (
+                <span key={i} className="line">
+                  {cut > 0 ? l.slice(0, cut + 1) : ''}
+                  <span className="hl">{cut > 0 ? l.slice(cut + 1) : l}</span>
+                </span>
+              );
+            })}
           </h1>
           <p className="lead">{c.lead}</p>
           <div className="hero-actions">

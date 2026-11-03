@@ -164,7 +164,7 @@ main { width: 100%; max-width: 1240px; margin: 0 auto; padding: 2.5rem var(--mar
 .hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 2.5rem clamp(2rem, 4vw, 4rem); align-items: center; }
 .pill-badge { display: inline-flex; align-items: center; gap: 0.45rem; background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; font-size: 0.95rem; padding: 0.45rem 1rem; border-radius: var(--r-round); margin: 0 0 1.5rem; }
 .hero h1 { font-size: var(--t-display); line-height: 1.12; letter-spacing: -0.045em; margin-bottom: 1.4rem; }
-.hero h1 span { display: block; }
+.hero h1 .line { display: block; }
 .hero h1 span.hl { display: inline-block; background: linear-gradient(90deg, rgba(132, 97, 224, 0.75), rgba(132, 97, 224, 0.25)) no-repeat 0 92% / 100% 0.16em; padding-bottom: 0.06em; }
 .hero .lead { font-size: 1.18rem; line-height: 1.7; color: var(--ink-2); max-width: 34em; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.9rem; }
