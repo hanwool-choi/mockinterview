@@ -598,6 +598,11 @@ main.report { max-width: calc(980px + 2 * var(--margin)); }
   .steps.with-labels .step-l { display: none; }
   .screen-foot .primary.big { width: 100%; }
   .foot-row span { flex-basis: 100%; }
+  /* Support note: heart and text on one row, the buttons full width below (they squeezed the text to one word a line). */
+  .support-note { flex-wrap: wrap; gap: 0.7rem 0.8rem; text-align: left; }
+  .support-note p { flex: 1 1 0; min-width: 0; }
+  .support-note .support-buttons { flex-basis: 100%; }
+  .support-note .support-buttons > * { flex: 1 1 auto; justify-content: center; }
 }
 /* Touch screens: inputs at 16px so iOS does not zoom on focus, and every control at least 44px tall to tap. */
 @media (pointer: coarse) {
