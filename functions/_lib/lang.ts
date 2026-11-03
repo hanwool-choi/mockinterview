@@ -3,6 +3,8 @@ import type { Lang } from '../../shared/schema';
 const HANGUL = /[가-힣]/g;
 const CJK_OTHER = /[一-鿿぀-ヿ]/; // Han ideographs, kana
 const LATIN_RUN = /[A-Za-z]+/g;
+/** Work vocabulary Korean speakers really use in English (lowercase forms the model may write). */
+const WORK_TERMS = new Set(['value', 'test', 'funnel', 'cohort', 'sprint', 'backlog', 'roadmap', 'figma', 'jira', 'slack', 'notion', 'excel', 'app', 'web']);
 
 const mostlyKorean = (t: string) => {
   const h = (t.match(HANGUL) ?? []).length;
@@ -13,8 +15,11 @@ const mostlyKorean = (t: string) => {
 /** A Korean string is clean when it has no stray CJK/kana and no lowercase English fragments that the source never used. */
 function cleanKorean(t: string, source: string): boolean {
   if (CJK_OTHER.test(t)) return false;
-  for (const run of t.match(LATIN_RUN) ?? []) {
+  for (const m of t.matchAll(LATIN_RUN)) {
+    const run = m[0];
     if (!/[a-z]/.test(run)) continue; // acronyms (API, PG, SQL, A/B) are fine
+    if (WORK_TERMS.has(run.toLowerCase())) continue;
+    if (/[A-Za-z]-$/.test(t.slice(Math.max(0, (m.index ?? 0) - 2), m.index))) continue; // p-value, e-mail
     if (/^[A-Z]/.test(run)) continue; // capitalised: product and company names (Link, Amplitude)
     if (run.length < 3) continue;
     if (!source.includes(run.toLowerCase())) return false; // "introducer", "relations", "cket"

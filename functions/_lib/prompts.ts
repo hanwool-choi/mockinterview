@@ -31,7 +31,8 @@ const SAFETY = {
 };
 
 
-const SCORE_SHAPE = `{"rubric":{"structure":0-20,"specificity":0-20,"jobFit":0-20,"consistency":0-20,"delivery":0-20},"score":0-100,"strengths":["max 2"],"improvements":["max 3, each quoting the candidate's own words"],"flaggedPhrases":[],"betterAnswer":"<=350 chars","languageNotes":[{"original":"","better":""}],"followUp":{"needed":true,"askedBy":"<id>","text":""} or null,"reactions":[{"interviewerId":"<id>","expression":"smile|nod|tilt|frown|neutral","line":"<short spoken reaction that fits the answer>"}],"summary":"<1 line>","guide":{"verdict":"<one line: how this answer landed with the panel>","star":{"situation":"ok|weak|missing","task":"ok|weak|missing","action":"ok|weak|missing","result":"ok|weak|missing"},"fixes":[{"point":"<missing point>","how":"<what to add and how>","example":"<one sentence the candidate could say, using their own facts; [본인 확인] for unknowns>"}],"phrasing":[{"from":"<exact phrase from the answer>","to":"<better phrasing>"}],"evidence":"<which line of the resume/portfolio to cite>","drill":"<one practice exercise for next time>"},"next":{"text":"<the next question>","intent":"<what it checks>"} or null}`;
+/** Kept lean on purpose: every field here is paid for on every turn. */
+const SCORE_SHAPE = `{"rubric":{"structure":0-20,"specificity":0-20,"jobFit":0-20,"consistency":0-20,"delivery":0-20},"score":0-100,"strengths":["max 2"],"improvements":["max 2, each quoting the candidate's own words"],"flaggedPhrases":[],"betterAnswer":"<=250 chars","languageNotes":[{"original":"","better":""}],"followUp":{"needed":true,"askedBy":"<id>","text":""} or null,"reactions":[{"interviewerId":"<id>","expression":"smile|nod|tilt|frown|neutral","line":"<short spoken reaction that fits the answer>"}],"summary":"<1 line>","guide":{"verdict":"<one line: how this answer landed with the panel>","star":{"situation":"ok|weak|missing","task":"ok|weak|missing","action":"ok|weak|missing","result":"ok|weak|missing"},"fixes":[max 2 of {"point":"<missing point>","how":"<what to add and how>","example":"<one sentence the candidate could say, using their own facts; [본인 확인] for unknowns>"}],"phrasing":[max 2 of {"from":"<exact phrase from the answer>","to":"<better phrasing>"}],"evidence":"<which line of the resume/portfolio to cite>","drill":"<one practice exercise for next time>"},"next":{"text":"<the next question>","intent":"<what it checks>"} or null}`;
 
 const KO_STYLE = '문체: 자연스러운 한국어 구어체 존댓말. 문서에 없는 영어 단어·한자·일본어를 섞지 말 것(고유명사·약어는 그대로).';
 
@@ -55,13 +56,13 @@ export function buildScoreMessages(req: ScoreRequest): ChatMessage[] {
     L === 'ko'
       ? `너는 공정하고 날카로운 면접 평가자이자 코치다. 답변을 5개 항목(구조, 구체성·수치, 직무적합, 진정성·일관성, 전달력) 각 0~20점으로 채점한다. 이전 답변과의 모순·반복은 일관성에서 감점.
 improvements와 guide는 일반론 금지: 지원자가 실제로 한 말을 인용해 무엇이 부족한지, 무엇을 어떻게 덧붙일지 구체적으로. guide.fixes의 example은 지원자 이력서·답변의 사실로 만든 말할 수 있는 한 문장(모르는 값은 [본인 확인]). guide.phrasing의 from은 답변 속 실제 표현.
-betterAnswer는 지원자 답변의 사실을 살려 350자 이내로 다시 쓴다(없는 사실 금지, 필요하면 [본인 확인]).
+betterAnswer는 지원자 답변의 사실을 살려 250자 이내로 다시 쓴다(없는 사실 금지, 필요하면 [본인 확인]).
 꼬리질문: 필수 포인트가 빠졌거나 70점 미만이거나 모순이면 followUp.needed=true. 꼬리질문은 지원자가 방금 한 말의 구체적인 부분을 짚어야 하며("방금 ○○라고 하셨는데"), 이미 나온 질문이나 '면접 흐름'에 남은 질문과 겹치면 안 된다.
 reactions의 line은 답변 내용에 맞는 짧은 반응(약한 답에 칭찬 금지). 모든 문장은 한국어.
 ${SAFETY.ko}\n${nextBlock(req)}\nJSON 형식:\n${SCORE_SHAPE}`
       : `You are a fair, sharp interview evaluator and coach. Score 5 criteria 0-20 each: structure, specificity (numbers), jobFit, consistency (contradictions/repetition vs earlier answers), delivery (English expression: grammar, vocabulary, naturalness; add languageNotes).
 improvements and guide must be specific: quote what the candidate actually said, say what is missing and exactly what to add. guide.fixes.example is one sentence the candidate could say using their own facts ([verify] for unknowns). guide.phrasing.from is an exact phrase from the answer.
-betterAnswer rewrites the answer in <=350 characters keeping their facts (never invent).
+betterAnswer rewrites the answer in <=250 characters keeping their facts (never invent).
 Follow-up: if key points are missing, score < 70, or contradiction → followUp.needed=true. It must pick up a specific part of what the candidate just said ("You mentioned ..."), and must not repeat any question already asked or still planned.
 reactions.line: a short spoken reaction that fits the answer (no praise for weak answers). Write everything in English.
 ${SAFETY.en}\n${nextBlock(req)}\nJSON shape:\n${SCORE_SHAPE}`;

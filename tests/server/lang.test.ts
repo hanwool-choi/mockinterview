@@ -37,3 +37,14 @@ describe('score validation covers coaching and reactions', () => {
     expect(inLanguage('ko', texts)).toBe(false);
   });
 });
+
+describe('inLanguage: technical terms vs garbled text (2026-11-03 benchmark)', () => {
+  it('allows common work terms in Korean text', () => {
+    expect(inLanguage('ko', ['통계적 유의미성(p-value 등)은 확보하셨나요?'])).toBe(true);
+    expect(inLanguage('ko', ['퍼널(funnel) 단계별로 이탈을 보고 sprint 단위로 개선했습니다.'])).toBe(true);
+  });
+  it('still rejects stray Chinese and random English words', () => {
+    expect(inLanguage('ko', ["'회사 이름 + 구체적인痛点 + 나의 해결책' 구조"])).toBe(false);
+    expect(inLanguage('ko', ['노출 조건을 myself가 조정해 실험을 진행했습니다.'])).toBe(false);
+  });
+});
