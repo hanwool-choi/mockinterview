@@ -578,12 +578,19 @@ main.report { max-width: calc(980px + 2 * var(--margin)); }
   .room-head .steps { grid-column: 1 / -1; grid-row: 2; width: 100%; }
   .room-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); height: calc(100dvh - 180px); min-height: 0; }
   .stage-col { display: block; }
-  .stage-wrap { height: 36vh; }
+  /* Short phones (iPhone SE): the stage gives way so the interviewer's question and the answer box both stay in view. */
+  .stage-wrap { height: clamp(150px, 30dvh, 36vh); }
+  .log { min-height: 5.5rem; }
+  .room-head { gap: 0.5rem 0.6rem; }
+  .room-actions { gap: 0.35rem; }
+  .room-actions button { padding: 0.55em 0.75em; font-size: 0.9rem; }
+  .screen-head { flex-wrap: wrap; gap: 0.6rem 1rem; }
+  .screen-head h1 { order: -1; flex-basis: 100%; }
   .now-asking { display: none; }
   .subtitle { font-size: 0.9rem; bottom: 0.5rem; padding: 0.55rem 0.75rem; }
   .panel-row { padding: 0 2%; }
   .nameplate { font-size: 0.78rem; padding: 0.2rem 0.5rem; }
-  .nameplate span { font-size: 0.68rem; }
+  .nameplate span { font-size: 0.75rem; }
   .answer-box textarea { min-height: 80px; }
   .sheet-total { grid-template-columns: 1fr 1fr; }
   .sheet-total > div:nth-child(3) { grid-column: 1 / -1; }
@@ -591,6 +598,19 @@ main.report { max-width: calc(980px + 2 * var(--margin)); }
   .steps.with-labels .step-l { display: none; }
   .screen-foot .primary.big { width: 100%; }
   .foot-row span { flex-basis: 100%; }
+}
+/* Touch screens: inputs at 16px so iOS does not zoom on focus, and every control at least 44px tall to tap. */
+@media (pointer: coarse) {
+  :root :is(input:not([type=checkbox]):not([type=radio]), textarea, select) { font-size: 16px; }
+  :root .check { min-height: 44px; }
+  :root .check input { width: 24px; height: 24px; }
+  :root button.link { min-height: 44px; }
+  :root .topbar select { min-height: 40px; }
+  :root .foot-row a { display: inline-flex; align-items: center; min-height: 40px; }
+  :root .step-dot { font-size: 0.8rem; }
+  :root .star { min-width: 44px; min-height: 44px; }
+  :root .pip-close { width: 40px; height: 40px; }
+  :root .toggle input { width: 24px; height: 24px; }
 }
 @media print {
   .no-print, .topbar, .site-foot { display: none !important; }

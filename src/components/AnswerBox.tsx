@@ -9,6 +9,8 @@ type Props = { lang: Lang; stage?: Stage; enabled: boolean; icebreak: boolean; o
 
 export function AnswerBox({ lang, stage, enabled, icebreak, onSubmit, onSkip, intent, showIntent }: Props) {
   const t = useT();
+  // Phones have no Ctrl+Enter: the placeholder drops that hint on touch screens.
+  const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const [text, setText] = useState('');
   const [listening, setListening] = useState(false);
   const [openIntent, setOpenIntent] = useState(false);
@@ -61,7 +63,7 @@ export function AnswerBox({ lang, stage, enabled, icebreak, onSubmit, onSkip, in
         disabled={!enabled}
         value={text}
         maxLength={6000}
-        placeholder={enabled ? t('room.placeholder') : t('room.waiting')}
+        placeholder={enabled ? t(touch ? 'room.placeholderTouch' : 'room.placeholder') : t('room.waiting')}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {

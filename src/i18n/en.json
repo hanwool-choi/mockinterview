@@ -81,6 +81,7 @@
   "room.evidence": "Show source",
   "room.intent": "Why they ask this",
   "room.placeholder": "Type your answer. Ctrl+Enter to submit",
+  "room.placeholderTouch": "Type your answer",
   "room.waiting": "Waiting for the question…",
   "room.submit": "Submit answer",
   "room.pass": "Pass",

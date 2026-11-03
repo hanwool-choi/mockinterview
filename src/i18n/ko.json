@@ -81,6 +81,7 @@
   "room.evidence": "근거 보기",
   "room.intent": "면접관 의도 보기",
   "room.placeholder": "답변을 입력하세요. Ctrl+Enter로 제출",
+  "room.placeholderTouch": "답변을 입력하세요",
   "room.waiting": "면접관의 질문을 기다리는 중…",
   "room.submit": "답변 제출",
   "room.pass": "패스",
