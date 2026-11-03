@@ -201,3 +201,43 @@ describe('callJson usage metering', () => {
     expect(r.usage.tokensIn).toBe(50 * r.usage.calls);
   });
 });
+
+describe('callJson with Google Gemini (direct API)', () => {
+  const gem = (content: string, usage = { prompt_tokens: 1000, completion_tokens: 200 }) => new Response(JSON.stringify({ choices: [{ message: { content } }], usage }), { status: 200 });
+  it('calls Gemini first, through its OpenAI-compatible endpoint with the Gemini key', async () => {
+    const seen: { url: string; auth: string | null; body: Record<string, unknown> }[] = [];
+    const f = (async (u: string, init: RequestInit) => {
+      seen.push({ url: String(u), auth: new Headers(init.headers).get('Authorization'), body: JSON.parse(String(init.body)) });
+      return gem('{"a":4}');
+    }) as unknown as typeof fetch;
+    const r = await callJson(env({ GEMINI_API_KEY: 'g-key', GEMINI_MODELS: 'gemini-2.5-flash-lite,gemini-3.5-flash-lite' }), { messages: [], schema, timeoutMs: 1000, maxTokens: 500, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r).toMatchObject({ ok: true, data: { a: 4 }, model: 'gemini:gemini-2.5-flash-lite' });
+    expect(seen[0].url).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(seen[0].auth).toBe('Bearer g-key');
+    expect(seen[0].body).toMatchObject({ model: 'gemini-2.5-flash-lite', max_tokens: 500, reasoning_effort: 'none' });
+  });
+  it('newer Gemini models get the lowest thinking level (they cannot turn it off)', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const f = (async (_u: string, init: RequestInit) => (bodies.push(JSON.parse(String(init.body))), gem('{"a":1}'))) as unknown as typeof fetch;
+    await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'gemini-3.5-flash-lite' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(bodies[0].reasoning_effort).toBe('low');
+  });
+  it('free tier records tokens at $0; paid tier prices them from GEMINI_PRICES', async () => {
+    const f = (async () => gem('{"a":1}')) as unknown as typeof fetch;
+    const free = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(free.usage).toEqual({ calls: 1, tokensIn: 1000, tokensOut: 200, costUsd: 0 });
+    const paid = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1', GEMINI_TIER: 'paid', GEMINI_PRICES: 'm1:0.3/2.5' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(paid.usage.costUsd).toBeCloseTo(1000 * 0.3e-6 + 200 * 2.5e-6, 10);
+  });
+  it('falls back to OpenRouter when Gemini is rate limited', async () => {
+    const f = (async (u: string) => (String(u).includes('googleapis') ? new Response('quota', { status: 429 }) : chat('{"a":9}'))) as unknown as typeof fetch;
+    const r = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r).toMatchObject({ ok: true, data: { a: 9 }, model: 'm/one:free' });
+  });
+  it('works with only a Gemini key (no OpenRouter key) and is fake only with neither', async () => {
+    const f = (async () => gem('{"a":2}')) as unknown as typeof fetch;
+    const only = { IV_KV: memKV(), GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' } as never;
+    expect(await callJson(only, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) })).toMatchObject({ ok: true, data: { a: 2 } });
+    expect(await callJson({ IV_KV: memKV() } as never, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) })).toMatchObject({ model: 'fake' });
+  });
+});

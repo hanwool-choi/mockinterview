@@ -14,6 +14,7 @@ FAIRY_URL = ""
 DAILY_BUDGET_USD = "2"
 SESSION_BUDGET_QUICK_USD = "0.002"
 SESSION_BUDGET_FULL_USD = "0.03"
+# Gemini (direct): set the GEMINI_API_KEY secret in Cloudflare; Gemini models are tried first. Optional: GEMINI_MODELS, GEMINI_TIER=paid.
 PAID_OVERFLOW = "on"
 # Cheap paid backups, tried in order when free models fail or exceed the free time budget (needs OpenRouter credits).
 PAID_MODEL = "qwen/qwen3.7-flash,deepseek/deepseek-v4.1-flash"

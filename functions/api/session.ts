@@ -1,5 +1,5 @@
 import type { SessionRequest } from '../../shared/api';
-import type { Env } from '../_lib/env';
+import { isFake, type Env } from '../_lib/env';
 import { guard, json, readJson } from '../_lib/http';
 import { checkOrigin, createSession, deviceSecret, kstDay, randomId, signDevice, verifyDevice, verifyTurnstile } from '../_lib/security';
 import { dailyLeft, paused } from '../_lib/budget';
@@ -10,7 +10,7 @@ export async function handleSession(req: Request, env: Env): Promise<Response> {
     // With a real key the shared budget is at stake: refuse to run without abuse protection configured.
     // Local development (localhost only) may run a real key without Turnstile.
     const local = ['localhost', '127.0.0.1'].includes(new URL(req.url).hostname);
-    if (env.OPENROUTER_API_KEY && (!env.DEVICE_SECRET || (!env.TURNSTILE_SECRET && !local))) return json(503, { error: 'misconfigured' });
+    if (!isFake(env) && (!env.DEVICE_SECRET || (!env.TURNSTILE_SECRET && !local))) return json(503, { error: 'misconfigured' });
     const body = await readJson<SessionRequest>(req, 4_000);
     if (!local && !(await verifyTurnstile(env, body.turnstileToken, req.headers.get('CF-Connecting-IP')))) return json(403, { error: 'turnstile' });
     const secret = deviceSecret(env);

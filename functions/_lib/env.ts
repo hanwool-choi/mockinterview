@@ -1,6 +1,13 @@
 export type Env = {
   IV_KV: KVNamespace;
   OPENROUTER_API_KEY?: string;
+  /** Google AI Studio key: Gemini models are called directly and tried first. */
+  GEMINI_API_KEY?: string;
+  /** Comma list of Gemini model ids, tried in order (default: gemini-3.5-flash-lite, gemini-3.8-flash). */
+  GEMINI_MODELS?: string;
+  /** 'free' (default, recorded at $0) or 'paid' (priced from GEMINI_PRICES). */
+  GEMINI_TIER?: string;
+  GEMINI_PRICES?: string;
   DEVICE_SECRET?: string;
   TURNSTILE_SECRET?: string;
   TURNSTILE_SITEKEY?: string;
@@ -28,7 +35,8 @@ export type Env = {
   EVENTS?: AnalyticsEngineDataset;
 };
 
-export const isFake = (env: Env) => !env.OPENROUTER_API_KEY;
+/** Demo mode: no AI provider key at all. */
+export const isFake = (env: Env) => !env.OPENROUTER_API_KEY && !env.GEMINI_API_KEY;
 export const intVar = (v: string | undefined, d: number) => {
   const n = Number.parseInt(v ?? '', 10);
   return Number.isFinite(n) && n > 0 ? n : d;

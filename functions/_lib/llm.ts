@@ -34,6 +34,22 @@ class HttpError extends Error {
  * 4-5x slower (score: ~50-60s with thinking, ~10-12s without), so calls ran out of time and fell back.
  * Reasoning is switched off unless LLM_REASONING=on; a provider that rejects the switch is retried without it.
  */
+/** Models called through Google's Gemini API directly are written "gemini:<model>"; everything else goes to OpenRouter. */
+const GEMINI_PREFIX = 'gemini:';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+export const DEFAULT_GEMINI_MODELS = 'gemini-3.5-flash-lite,gemini-3.8-flash';
+/** USD per 1M tokens (input/output), used only when GEMINI_TIER=paid. Override with GEMINI_PRICES "model:in/out,...". */
+const GEMINI_PRICES: Record<string, [number, number]> = { 'gemini-3.5-flash-lite': [0.3, 2.5], 'gemini-3.8-flash': [0.825, 4.125] };
+
+function geminiCost(env: Env, model: string, tokensIn: number, tokensOut: number): number {
+  if (env.GEMINI_TIER !== 'paid') return 0; // free tier: Google does not bill, tokens are still counted
+  const custom = Object.fromEntries(
+    (env.GEMINI_PRICES ?? '').split(',').map((x) => x.trim().match(/^(.+):([\d.]+)\/([\d.]+)$/)).filter((m): m is RegExpMatchArray => !!m).map((m) => [m[1], [Number(m[2]), Number(m[3])] as [number, number]]),
+  );
+  const [pin, pout] = custom[model] ?? GEMINI_PRICES[model] ?? [0, 0];
+  return (tokensIn * pin + tokensOut * pout) / 1e6;
+}
+
 async function chatOnce(env: Env, model: string, messages: ChatMessage[], timeoutMs: number, fetchFn: typeof fetch, maxTokens?: number): Promise<Reply> {
   const think = env.LLM_REASONING === 'on';
   const started = Date.now();
@@ -50,6 +66,21 @@ async function chatRequest(env: Env, model: string, messages: ChatMessage[], tim
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
+    if (model.startsWith(GEMINI_PREFIX)) {
+      const m = model.slice(GEMINI_PREFIX.length);
+      const res = await fetchFn(GEMINI_URL, {
+        method: 'POST',
+        signal: ctl.signal,
+        headers: { Authorization: `Bearer ${env.GEMINI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: m, messages, temperature: 0.6, ...(maxTokens ? { max_tokens: maxTokens } : {}), // Thinking can be fully off only on 2.5 models; newer ones take the lowest level.
+        ...(noReasoning ? { reasoning_effort: /gemini-2\.5/.test(m) ? 'none' : 'low' } : {}) }),
+      });
+      if (!res.ok) throw new HttpError(`${model}: HTTP ${res.status}`, res.status);
+      const body = (await res.json()) as { choices?: { message?: { content?: string } }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+      const tin = body.usage?.prompt_tokens ?? 0;
+      const tout = body.usage?.completion_tokens ?? 0;
+      return { content: body.choices?.[0]?.message?.content ?? '', usage: { calls: 1, tokensIn: tin, tokensOut: tout, costUsd: geminiCost(env, m, tin, tout) } };
+    }
     const res = await fetchFn('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       signal: ctl.signal,
@@ -104,9 +135,12 @@ export async function callJson<T>(
   if (isFake(env)) return { ok: true, data: opts.fake(), model: 'fake', usage };
   const fetchFn = opts.fetchFn ?? fetch;
   // The account-wide free daily quota is exhausted: go straight to paid (or fallback) until it resets.
-  const freeExhausted = !!(await env.IV_KV.get('free:exhausted'));
-  const free = freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5);
-  const paid = env.PAID_OVERFLOW === 'on' ? (env.PAID_MODEL ?? '').split(',').map((m) => m.trim()).filter(Boolean) : [];
+  const router = !!env.OPENROUTER_API_KEY;
+  const freeExhausted = !router || !!(await env.IV_KV.get('free:exhausted'));
+  // Gemini (direct API) goes first when its key is set: its free tier costs nothing; OpenRouter stays as the fallback.
+  const gemini = env.GEMINI_API_KEY ? await healthyModels(env, (env.GEMINI_MODELS || DEFAULT_GEMINI_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => GEMINI_PREFIX + m)) : [];
+  const free = [...gemini, ...(freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5))];
+  const paid = router && env.PAID_OVERFLOW === 'on' ? (env.PAID_MODEL ?? '').split(',').map((m) => m.trim()).filter(Boolean) : [];
   const errors: string[] = [];
   const start = Date.now();
   // One overall deadline (kept below the client's timeout) so the fallback chain actually gets a turn.
@@ -137,7 +171,8 @@ export async function callJson<T>(
   };
 
   for (const model of free) {
-    if (Date.now() >= freeEnd || (await env.IV_KV.get('free:exhausted'))) break;
+    if (Date.now() >= freeEnd) break;
+    if (!model.startsWith(GEMINI_PREFIX) && (await env.IV_KV.get('free:exhausted'))) break;
     try {
       const data = await attempt(model, freeEnd, 2);
       if (data) return { ok: true, data, model, usage };
