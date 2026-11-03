@@ -4,42 +4,43 @@ import type { InterviewerConfig } from '../../shared/schema';
 
 const cfg = (o: Partial<InterviewerConfig> = {}): InterviewerConfig => ({ id: 'a', role: 'dev', rank: 'staff', gender: 'female', personality: 'warm', seed: 42, ...o });
 
-describe('lookFor', () => {
+describe('lookFor: one art style, impression follows rank and role', () => {
   it('is deterministic for the same config', () => {
     expect(lookFor(cfg())).toEqual(lookFor(cfg()));
   });
-  it('different seeds can vary appearance', () => {
-    const looks = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => JSON.stringify(lookFor(cfg({ seed })))));
-    expect(looks.size).toBeGreaterThan(1);
+  it('rank sets the age band', () => {
+    expect(lookFor(cfg({ rank: 'staff' })).age).toBe('young');
+    expect(lookFor(cfg({ rank: 'manager' })).age).toBe('mid');
+    expect(lookFor(cfg({ rank: 'lead' })).age).toBe('mid');
+    expect(lookFor(cfg({ rank: 'exec' })).age).toBe('senior');
   });
-  it('executives wear suits, gray hair and a large chair', () => {
-    const l = lookFor(cfg({ rank: 'exec', role: 'other' }));
-    expect(l.outfit.kind).toBe('suit');
-    expect(l.chair).toBe('large');
-    expect(l.ageGray).toBe(true);
-  });
-  it('role decides the prop', () => {
-    expect(lookFor(cfg({ role: 'hr' })).prop).toBe('notebook');
-    expect(lookFor(cfg({ role: 'dev' })).prop).toBe('laptop');
-    expect(lookFor(cfg({ role: 'design' })).prop).toBe('tablet');
-    expect(lookFor(cfg({ role: 'sales' })).prop).toBe('cards');
-    expect(lookFor(cfg({ role: 'finance' })).prop).toBe('folder');
-  });
-  it('personality drives idle pose and brow', () => {
-    const p = lookFor(cfg({ personality: 'pressure' }));
-    expect(p.idle).toBe('armsCrossed');
-    expect(p.browBase).toBeLessThan(0);
-    expect(lookFor(cfg({ personality: 'strict' })).idle).toBe('adjustGlasses');
-    expect(lookFor(cfg({ personality: 'strict' })).glasses).toBe(true);
-    expect(lookFor(cfg({ personality: 'warm' })).browBase).toBeGreaterThan(0);
-  });
-  it('gender selects from matching hair sets', () => {
-    for (let seed = 0; seed < 20; seed++) {
-      expect(['short', 'side', 'bald']).toContain(lookFor(cfg({ gender: 'male', seed, rank: 'staff' })).hair.style);
-      expect(['bob', 'long', 'bun', 'side']).toContain(lookFor(cfg({ gender: 'female', seed })).hair.style);
+  it('executives wear a dark suit and have graying hair', () => {
+    for (const gender of ['male', 'female'] as const) {
+      const l = lookFor(cfg({ rank: 'exec', role: 'other', gender }));
+      expect(l.outfit.kind).toBe(gender === 'male' ? 'suit' : 'blazer');
+      expect(['#8e9196', '#a9acb1', '#6f7378']).toContain(l.hair.color);
     }
   });
+  it('the sheet trio: exec in suit and tie, HR in a light blazer, staff in a shirt with a lanyard', () => {
+    const exec = lookFor(cfg({ role: 'other', rank: 'exec', gender: 'male' }));
+    expect(exec.outfit.tie).not.toBeNull();
+    const hr = lookFor(cfg({ role: 'hr', rank: 'manager', gender: 'female' }));
+    expect(hr.outfit.kind).toBe('blazer');
+    const staff = lookFor(cfg({ role: 'dev', rank: 'staff', gender: 'male' }));
+    expect(staff.outfit.kind).toBe('shirt');
+    expect(staff.lanyard).toBe(true);
+  });
+  it('gender picks a matching hair set; unspecified gender still resolves to one', () => {
+    for (let seed = 0; seed < 20; seed++) {
+      expect(['shortCrop', 'sidePart', 'sweptBack']).toContain(lookFor(cfg({ gender: 'male', seed })).hair.style);
+      expect(['lowBun', 'bob', 'long', 'ponytail']).toContain(lookFor(cfg({ gender: 'female', seed })).hair.style);
+      expect(['male', 'female']).toContain(lookFor(cfg({ gender: 'none', seed })).gender);
+    }
+  });
+  it('pressure interviewers start with lower brows than warm ones', () => {
+    expect(lookFor(cfg({ personality: 'pressure' })).browBase).toBeLessThan(lookFor(cfg({ personality: 'warm' })).browBase);
+  });
   it('honours manual skin and hair overrides', () => {
-    expect(lookFor(cfg(), { skinTone: '#8d5524', hairStyle: 'bun' })).toMatchObject({ skin: '#8d5524', hair: { style: 'bun' } });
+    expect(lookFor(cfg(), { skinTone: '#c68e6a', hairStyle: 'bob' })).toMatchObject({ skin: '#c68e6a', hair: { style: 'bob' } });
   });
 });

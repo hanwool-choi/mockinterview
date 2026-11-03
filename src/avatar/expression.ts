@@ -1,46 +1,41 @@
 import type { Expression } from '../../shared/schema';
 
-export type FaceState = {
-  browL: number; // rotation-ish, −1..1 (positive = inner end raised)
+/** The six interviewer states. The model still speaks in Expression; stateFor maps it. */
+export const AVATAR_STATES = ['neutral', 'smile', 'serious', 'doubt', 'nod', 'memo'] as const;
+export type AvatarState = (typeof AVATAR_STATES)[number];
+
+export function stateFor(e: Expression): AvatarState {
+  return e === 'frown' ? 'serious' : e === 'tilt' ? 'doubt' : e;
+}
+
+/** Face parameters, kept small on purpose: changes should read as calm and professional. */
+export type Face = {
+  browL: number; // inner-end angle, −1 (down, stern) .. 1 (up, questioning)
   browR: number;
-  browY: number; // −1..1 height offset
-  eyeOpen: number; // 0..1
-  mouth: { smile: number; open: number; pout: number }; // 0..1
-  headPitch: number; // radians offset (nod handled separately)
-  headRoll: number;
-  blush: number; // 0..1
+  browY: number; // −1..1 height
+  eyeOpen: number; // 0..1 (lid)
+  gazeY: number; // 0 ahead .. 1 down
+  smile: number; // −0.4 (pressed down) .. 1
+  tilt: number; // head roll, degrees
+  pitch: number; // head pitch, degrees (down positive)
 };
 
 const clamp = (v: number, lo = -1, hi = 1) => Math.max(lo, Math.min(hi, v));
 
-export function faceTarget(expr: Expression, base: number): FaceState {
-  const n: FaceState = { browL: 0, browR: 0, browY: clamp(base * 0.6), eyeOpen: 1, mouth: { smile: base > 0 ? 0.2 : 0.05, open: 0, pout: 0 }, headPitch: 0, headRoll: 0, blush: 0 };
-  switch (expr) {
+export function faceFor(state: AvatarState, base: number): Face {
+  const n: Face = { browL: 0, browR: 0, browY: clamp(base * 0.5), eyeOpen: 1, gazeY: 0, smile: base > 0 ? 0.12 : 0, tilt: 0, pitch: 0 };
+  switch (state) {
     case 'smile':
-      return { ...n, browY: clamp(n.browY + 0.3), eyeOpen: 0.55, mouth: { smile: 0.95, open: 0.15, pout: 0 }, blush: 0.6 };
+      return { ...n, browY: clamp(n.browY + 0.2), eyeOpen: 0.82, smile: 0.75 };
+    case 'serious':
+      return { ...n, browL: -0.45, browR: -0.45, browY: clamp(n.browY - 0.35), eyeOpen: 0.9, smile: -0.15, pitch: 1 };
+    case 'doubt':
+      return { ...n, browL: 0.55, browR: -0.25, browY: clamp(n.browY + 0.1), eyeOpen: 0.88, smile: -0.05, tilt: 4 };
     case 'nod':
-      return { ...n, browY: clamp(n.browY + 0.15), eyeOpen: 0.85, mouth: { smile: 0.45, open: 0, pout: 0 } };
-    case 'tilt':
-      return { ...n, browL: 0.5, browR: -0.3, browY: clamp(n.browY + 0.1), eyeOpen: 0.95, mouth: { smile: 0, open: 0.05, pout: 0.2 }, headRoll: 0.26 };
-    case 'frown':
-      return { ...n, browL: -0.6, browR: -0.6, browY: clamp(n.browY - 0.5), eyeOpen: 0.7, mouth: { smile: 0, open: 0, pout: 0.75 }, headPitch: 0.05 };
+      return { ...n, browY: clamp(n.browY + 0.12), eyeOpen: 0.9, smile: 0.35 };
+    case 'memo':
+      return { ...n, eyeOpen: 0.7, gazeY: 1, pitch: 5 };
     default:
       return n;
   }
-}
-
-const NOD_DUR = 0.9;
-export function nodPitch(tSec: number): number {
-  if (tSec <= 0 || tSec >= NOD_DUR) return 0;
-  const env = Math.sin((Math.PI * tSec) / NOD_DUR);
-  return 0.22 * env * Math.sin((2 * Math.PI * 2.5 * tSec) / NOD_DUR);
-}
-
-const mix = (a: number, b: number, t: number) => a + (b - a) * t;
-export function lerpFace(a: FaceState, b: FaceState, t: number): FaceState {
-  return {
-    browL: mix(a.browL, b.browL, t), browR: mix(a.browR, b.browR, t), browY: mix(a.browY, b.browY, t), eyeOpen: mix(a.eyeOpen, b.eyeOpen, t),
-    mouth: { smile: mix(a.mouth.smile, b.mouth.smile, t), open: mix(a.mouth.open, b.mouth.open, t), pout: mix(a.mouth.pout, b.mouth.pout, t) },
-    headPitch: mix(a.headPitch, b.headPitch, t), headRoll: mix(a.headRoll, b.headRoll, t), blush: mix(a.blush, b.blush, t),
-  };
 }

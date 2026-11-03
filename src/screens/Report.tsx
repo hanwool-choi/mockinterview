@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import type { Report as R } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
-import { faceTarget } from '../avatar/expression';
 import { lookFor } from '../avatar/look';
 import { api } from '../api/client';
 import { RubricGrid, SheetFields, SheetProgress, Stamp } from '../components/Sheet';
@@ -22,7 +21,7 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
   const names = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.displayName]));
   const titles = Object.fromEntries(state.plan.interviewers.map((i) => [i.id, i.title]));
   const stationName = Object.fromEntries(sheetRows(state.plan, setup.uiLang).map((st) => [st.id, st.label]));
-  const verdictFace = p.verdict === 'pass' ? 'smile' : p.verdict === 'hold' ? 'tilt' : 'frown';
+  const verdictFace = p.verdict === 'pass' ? 'smile' : p.verdict === 'hold' ? 'doubt' : 'serious';
 
   return (
     <main className="report" data-testid="report">
@@ -74,7 +73,7 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
               const cfg = setup.interviewers.find((i) => i.id === c.interviewerId);
               return (
                 <li key={c.interviewerId}>
-                  {cfg && <Portrait2D look={lookFor(cfg, setup.overrides[cfg.id])} face={faceTarget(verdictFace, lookFor(cfg).browBase)} size={56} />}
+                  {cfg && <Portrait2D look={lookFor(cfg, setup.overrides[cfg.id])} state={verdictFace} size={56} seed={cfg.seed} />}
                   <div>
                     <b>
                       {names[c.interviewerId] ?? c.interviewerId} <small>{titles[c.interviewerId]}</small>

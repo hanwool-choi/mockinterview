@@ -182,7 +182,8 @@ html[lang="ko"] .sheet-title, html[lang="ko"] .sheet-head h1 { letter-spacing: 0
 .hero-sheet { margin: 0; }
 .hero-sheet .sheet { max-width: 560px; margin-left: auto; }
 .hero-sheet figcaption { max-width: 560px; margin: 0.7rem 0 0 auto; font-size: var(--t-small); color: var(--ink-2); font-weight: 600; }
-.portrait2d { border-radius: 50%; display: block; flex: none; }
+.portrait2d { border-radius: 50%; display: inline-block; flex: none; overflow: hidden; background: #eef1f7; vertical-align: middle; }
+.portrait2d svg { display: block; width: 100%; height: 100%; }
 .other-lang { font-size: 1.0625rem; padding: 0.95em 0.6em; }
 
 .questions { margin-top: var(--gap-section); }
@@ -315,12 +316,27 @@ main.room { max-width: 1480px; padding: 0.6rem var(--margin) 1rem; display: flex
 .room-body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 1rem; height: calc(100dvh - 160px); min-height: 480px; }
 .stage-col { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 0.8rem; min-height: 0; }
 .stage-wrap { position: relative; min-height: 0; height: 100%; background: #e9eef3; border-radius: var(--r-panel); overflow: hidden; }
-.stage-canvas { width: 100%; height: 100%; display: block; }
-.stage-2d { height: 100%; display: flex; align-items: center; justify-content: center; gap: 1.5rem; flex-wrap: wrap; padding: 1rem; }
-.stage-2d figure { margin: 0; text-align: center; transition: transform 220ms var(--ease-out); }
-.stage-2d figure.speaking { transform: translateY(-6px); }
-.stage-2d figcaption { display: flex; flex-direction: column; font-size: 0.9rem; margin-top: 0.4rem; }
-.stage-2d figcaption span { color: var(--ink-2); font-size: 0.8rem; }
+/* the panel: 2D illustrated interviewers behind a desk */
+.stage-2d { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; background: linear-gradient(180deg, #f3f6fb 0%, #e8edf5 62%, #dfe5ee 100%); }
+.stage-2d::before { content: ''; position: absolute; inset: 0 0 38% 0; background: repeating-linear-gradient(90deg, transparent 0 24%, rgba(255, 255, 255, 0.55) 24% 24.6%); pointer-events: none; }
+.panel-row { position: relative; z-index: 1; display: flex; justify-content: center; align-items: flex-end; gap: clamp(4px, 2.5vw, 36px); padding: 0 4%; }
+.seat { margin: 0; flex: 0 1 31%; max-width: 380px; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.seat .interviewer { display: block; width: 100%; height: auto; }
+.nameplate { position: relative; z-index: 2; margin-top: -10px; background: #fff; border-radius: 8px; padding: 0.3rem 0.9rem 0.35rem; text-align: center; display: flex; flex-direction: column; line-height: 1.25; font-size: 0.9rem; box-shadow: 0 2px 8px rgba(27, 31, 46, 0.12); transition: box-shadow 200ms var(--ease-out); }
+.nameplate span { font-size: 0.75rem; color: var(--ink-2); }
+.seat.speaking .nameplate { box-shadow: 0 0 0 2px #6b46c1, 0 2px 8px rgba(27, 31, 46, 0.12); }
+.desk { position: relative; height: 16%; min-height: 36px; margin-top: -22px; background: linear-gradient(180deg, #ede3d6, #ddd0bd); }
+
+/* interviewer motion: sheet timings, all off under reduced motion */
+.interviewer .lid { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); }
+.interviewer.live .lid { animation: iv-blink var(--blink, 4.6s) infinite; animation-delay: var(--blink-delay, 0s); }
+@keyframes iv-blink { 0%, 95% { transform: scaleY(0); } 96.5% { transform: scaleY(1); } 98%, 100% { transform: scaleY(0); } }
+.interviewer.live .breath { animation: iv-breath 4.2s ease-in-out infinite alternate; animation-delay: var(--breath-delay, 0s); }
+@keyframes iv-breath { to { transform: translateY(-1.5px); } }
+.interviewer .nod { transform-box: view-box; transform-origin: 100px 140px; animation: iv-nod 1.1s ease-in-out 1; }
+@keyframes iv-nod { 0% { transform: rotate(0); } 23% { transform: rotate(7deg); } 46% { transform: rotate(0); } 69% { transform: rotate(5deg); } 92%, 100% { transform: rotate(0); } }
+.interviewer.live .memo .pen { transform-box: view-box; transform-origin: 70px 208px; animation: iv-write 1.6s ease-in-out infinite; }
+@keyframes iv-write { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(3px, -1px); } 50% { transform: translate(6px, 0); } 75% { transform: translate(2px, 1px); } }
 .now-asking { background: var(--ground-2); border-radius: var(--r-panel); padding: 1rem 1.3rem; max-height: 9.5rem; overflow-y: auto; }
 .now-asking .who { font-size: var(--t-small); color: var(--ink-2); font-weight: 800; display: flex; gap: 0.5rem; align-items: center; }
 .now-asking p { font-size: 1.22rem; font-weight: 800; margin: 0.3rem 0 0; letter-spacing: -0.015em; line-height: 1.4; }
@@ -507,8 +523,9 @@ main.report { max-width: calc(960px + 2 * var(--margin)); }
   .stage-wrap { height: 36vh; }
   .now-asking { display: none; }
   .subtitle { font-size: 0.92rem; bottom: 0.5rem; padding: 0.55rem 0.75rem; }
-  .stage-2d { gap: 0.5rem; }
-  .stage-2d svg { width: 84px; height: 84px; }
+  .panel-row { padding: 0 2%; }
+  .nameplate { font-size: 0.78rem; padding: 0.2rem 0.5rem; }
+  .nameplate span { font-size: 0.68rem; }
   .answer-box textarea { min-height: 80px; }
   .report-sheet .big-hand { font-size: 3.4rem; }
   .report-sheet .sheet-progress .cell-l { display: none; }
@@ -527,3 +544,12 @@ main.report { max-width: calc(960px + 2 * var(--margin)); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ?avatars review sheet */
+.avatar-gallery { max-width: 1240px; }
+.avatar-gallery table { border-collapse: separate; border-spacing: 8px; }
+.avatar-gallery th { font-size: 0.9rem; text-align: center; }
+.avatar-gallery tbody th { text-align: left; display: flex; flex-direction: column; min-width: 110px; padding-top: 3rem; }
+.avatar-gallery tbody th small { color: var(--ink-2); font-weight: 500; }
+.avatar-gallery td { background: #eef1f7; border-radius: 10px; }
+.avatar-gallery td .interviewer { display: block; }

@@ -19,10 +19,10 @@ export type Setup = {
 };
 
 export const defaultInterviewers = (): InterviewerConfig[] => [
-  { id: 'iv1', role: 'other', rank: 'lead', gender: 'male', personality: 'strict', seed: 11 },
+  { id: 'iv1', role: 'other', rank: 'exec', gender: 'male', personality: 'strict', seed: 11 },
   { id: 'iv2', role: 'hr', rank: 'manager', gender: 'female', personality: 'warm', seed: 23 },
   { id: 'iv3', role: 'dev', rank: 'staff', gender: 'male', personality: 'warm', seed: 37 },
-  { id: 'iv4', role: 'other', rank: 'exec', gender: 'female', personality: 'pressure', seed: 41 },
+  { id: 'iv4', role: 'finance', rank: 'lead', gender: 'female', personality: 'pressure', seed: 41 },
 ];
 
 export const emptySetup = (lang: Lang = 'ko'): Setup => ({

@@ -1,42 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { faceTarget, nodPitch, lerpFace } from '../../src/avatar/expression';
+import { AVATAR_STATES, faceFor, stateFor } from '../../src/avatar/expression';
 
-describe('faceTarget', () => {
-  it('smile lifts mouth corners', () => expect(faceTarget('smile', 0).mouth.smile).toBeGreaterThan(0.5));
-  it('frown pouts and lowers brows', () => {
-    const f = faceTarget('frown', 0);
-    expect(f.mouth.pout).toBeGreaterThan(0.3);
-    expect(f.browY).toBeLessThan(0);
+describe('avatar states', () => {
+  it('supports the six states', () => {
+    expect(AVATAR_STATES).toEqual(['neutral', 'smile', 'serious', 'doubt', 'nod', 'memo']);
   });
-  it('tilt rolls the head and makes brows asymmetric', () => {
-    const t = faceTarget('tilt', 0);
-    expect(t.headRoll).not.toBe(0);
-    expect(t.browL).not.toBe(t.browR);
+  it('maps model expressions onto states (frown reads as serious, tilt as doubt)', () => {
+    expect(stateFor('frown')).toBe('serious');
+    expect(stateFor('tilt')).toBe('doubt');
+    expect(stateFor('smile')).toBe('smile');
+    expect(stateFor('nod')).toBe('nod');
+    expect(stateFor('neutral')).toBe('neutral');
   });
-  it('base brow shifts neutral', () => {
-    expect(faceTarget('neutral', -0.4).browY).toBeLessThan(faceTarget('neutral', 0.3).browY);
+  it('keeps changes calm: smile lifts the mouth, serious lowers the brows, doubt is asymmetric with a small tilt', () => {
+    const n = faceFor('neutral', 0);
+    expect(faceFor('smile', 0).smile).toBeGreaterThan(n.smile);
+    expect(faceFor('serious', 0).browY).toBeLessThan(n.browY);
+    const d = faceFor('doubt', 0);
+    expect(d.browL).not.toBe(d.browR);
+    expect(Math.abs(d.tilt)).toBeGreaterThan(0);
+    expect(Math.abs(d.tilt)).toBeLessThanOrEqual(6);
   });
-});
-
-describe('nodPitch', () => {
-  it('starts and ends at rest and oscillates ≥4 sign changes within 0.9s', () => {
-    expect(nodPitch(0)).toBe(0);
-    expect(nodPitch(1.2)).toBe(0);
-    let changes = 0;
-    let prev = 0;
-    for (let t = 0.01; t < 0.9; t += 0.01) {
-      const v = nodPitch(t);
-      if (prev !== 0 && Math.sign(v) !== Math.sign(prev) && v !== 0) changes++;
-      if (v !== 0) prev = v;
-    }
-    expect(changes).toBeGreaterThanOrEqual(4);
+  it('memo looks down', () => {
+    expect(faceFor('memo', 0).gazeY).toBeGreaterThan(0);
+    expect(faceFor('memo', 0).pitch).toBeGreaterThan(0);
   });
-});
-
-describe('lerpFace', () => {
-  it('interpolates halfway', () => {
-    const a = faceTarget('neutral', 0);
-    const b = faceTarget('smile', 0);
-    expect(lerpFace(a, b, 0.5).mouth.smile).toBeCloseTo((a.mouth.smile + b.mouth.smile) / 2);
+  it('personality base shifts the resting brows', () => {
+    expect(faceFor('neutral', -0.4).browY).toBeLessThan(faceFor('neutral', 0.3).browY);
   });
 });

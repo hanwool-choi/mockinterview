@@ -3,7 +3,6 @@ import { Icon } from '../components/Icon';
 import type { Gender, InterviewerConfig, Personality, Rank, Role } from '../../shared/schema';
 import { api } from '../api/client';
 import { Portrait2D } from '../avatar/Portrait2D';
-import { faceTarget } from '../avatar/expression';
 import { lookFor } from '../avatar/look';
 import { useT, type Key } from '../i18n';
 import { defaultInterviewers, type Setup } from '../state/setup';
@@ -105,7 +104,7 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
       <div className="iv-cards">
         {ivs.map((iv, i) => (
           <article key={iv.id} className="iv-card">
-            <Portrait2D look={lookFor(iv, setup.overrides[iv.id])} face={faceTarget(iv.personality === 'pressure' ? 'frown' : iv.personality === 'warm' ? 'smile' : 'neutral', lookFor(iv).browBase)} size={96} />
+            <Portrait2D look={lookFor(iv, setup.overrides[iv.id])} state={iv.personality === 'pressure' ? 'serious' : iv.personality === 'warm' ? 'smile' : 'neutral'} size={104} seed={iv.seed} />
             <div className="iv-fields">
               <label>
                 {t('panel.role')}
@@ -165,13 +164,6 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
               <Icon name="volume" /> {t('panel.preview')}
             </button>
           )}
-        </label>
-        <label className="toggle">
-          <input type="checkbox" checked={setup.threeD} onChange={(e) => onChange({ ...setup, threeD: e.target.checked })} />
-          <span>
-            <b>{t('panel.three')}</b>
-            <small>{t('panel.threeD')}</small>
-          </span>
         </label>
       </section>
       <div ref={ts.ref} className="turnstile" />

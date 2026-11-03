@@ -1,7 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import type { Lang } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
-import { faceTarget } from '../avatar/expression';
 import { lookFor } from '../avatar/look';
 import { Icon } from '../components/Icon';
 import { PenCheck, RubricGrid, SheetFields, Stamp } from '../components/Sheet';
@@ -162,7 +161,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
           <article className="board" aria-live="polite" key={sel}>
             <blockquote className="board-question">{q ? q.text : plan.smallTalk.opening[0]}</blockquote>
             <p className="board-by">
-              <Portrait2D look={lookFor(asker.cfg)} face={faceTarget('neutral', lookFor(asker.cfg).browBase)} size={44} />
+              <Portrait2D look={lookFor(asker.cfg)} size={44} seed={asker.cfg.seed} />
               <span>
                 <b>{asker.name}</b> · {asker.title}
               </span>

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Expression, InterviewerConfig } from '../../shared/schema';
-import { Portrait2D } from '../avatar/Portrait2D';
-import { faceTarget } from '../avatar/expression';
+import { useEffect, useState } from 'react';
+import type { InterviewerConfig } from '../../shared/schema';
+import { stateFor, type AvatarState } from '../avatar/expression';
+import { Interviewer } from '../avatar/Interviewer';
 import { lookFor, type Look } from '../avatar/look';
 import type { PanelApi } from '../state/useInterview';
 import type { Setup } from '../state/setup';
@@ -12,83 +12,54 @@ export function membersFor(setup: Setup, nameOf: (id: string) => string, titleOf
   return setup.interviewers.map((cfg) => ({ cfg, look: lookFor(cfg, setup.overrides[cfg.id]), name: nameOf(cfg.id), title: titleOf(cfg.id) }));
 }
 
-const webgl = (() => {
-  let v: boolean | null = null;
-  return () => {
-    if (v !== null) return v;
-    try {
-      const c = document.createElement('canvas');
-      v = !!(c.getContext('webgl2') || c.getContext('webgl'));
-    } catch {
-      v = false;
-    }
-    return v;
-  };
-})();
+const HOLD_MS: Record<AvatarState, number> = { neutral: 0, smile: 3200, serious: 3600, doubt: 3200, nod: 1400, memo: 0 };
 
-/** 3D stage when possible, otherwise 2D portraits; both expose the same PanelApi. */
-export function Stage({ members, threeD, onApi, speakingId }: { members: Member[]; threeD: boolean; onApi: (api: PanelApi | null) => void; speakingId: string | null }) {
-  const use3D = threeD && webgl();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [exprs, setExprs] = useState<Record<string, Expression>>({});
-  const [failed, setFailed] = useState(false);
-  const key = useMemo(() => members.map((m) => `${m.cfg.id}${m.name}${JSON.stringify(m.look)}`).join('|'), [members]);
+/** The panel behind the desk: 2D illustrated interviewers driven through PanelApi. */
+export function Stage({ members, onApi, speakingId }: { members: Member[]; threeD?: boolean; onApi: (api: PanelApi | null) => void; speakingId: string | null }) {
+  const [states, setStates] = useState<Record<string, AvatarState>>({});
+  const [writing, setWriting] = useState<Record<string, boolean>>({});
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   useEffect(() => {
-    if (!use3D || failed || !canvasRef.current) return;
-    let disposed = false;
-    let stage: import('../avatar/stage').InterviewStage | null = null;
-    import('../avatar/stage')
-      .then(({ InterviewStage }) => {
-        if (disposed || !canvasRef.current) return;
-        const lowPower = window.matchMedia('(max-width: 767px)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
-        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        stage = new InterviewStage(canvasRef.current, members, { lowPower, reducedMotion });
-        onApi({
-          setExpression: (id, e) => stage?.setExpression(id, e),
-          setSpeaking: (id, on) => stage?.setSpeaking(id, on),
-          setAction: (id, a) => stage?.setAction(id, a),
-          focus: (id) => stage?.focus(id),
-        });
-      })
-      .catch(() => setFailed(true));
-    return () => {
-      disposed = true;
-      onApi(null);
-      stage?.dispose();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [use3D, failed, key]);
-
-  useEffect(() => {
-    if (use3D && !failed) return;
     const timers = new Map<string, number>();
     onApi({
       setExpression: (id, e) => {
-        setExprs((x) => ({ ...x, [id]: e }));
+        const s = stateFor(e);
+        setStates((x) => ({ ...x, [id]: s }));
         window.clearTimeout(timers.get(id));
-        if (e !== 'neutral') timers.set(id, window.setTimeout(() => setExprs((x) => ({ ...x, [id]: 'neutral' })), 3200));
+        if (HOLD_MS[s]) timers.set(id, window.setTimeout(() => setStates((x) => ({ ...x, [id]: 'neutral' })), HOLD_MS[s]));
       },
       setSpeaking: () => {},
-      setAction: () => {},
+      setAction: (id, a) => setWriting((x) => ({ ...x, [id]: a === 'write' })),
       focus: () => {},
     });
-    return () => onApi(null);
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      onApi(null);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [use3D, failed]);
+  }, []);
 
-  if (use3D && !failed) return <canvas ref={canvasRef} className="stage-canvas" aria-label="interview panel" />;
   return (
-    <div className="stage-2d">
-      {members.map((m) => (
-        <figure key={m.cfg.id} className={speakingId === m.cfg.id ? 'speaking' : ''}>
-          <Portrait2D look={m.look} face={faceTarget(exprs[m.cfg.id] ?? 'neutral', m.look.browBase)} speaking={speakingId === m.cfg.id} size={132} title={m.name} />
-          <figcaption>
-            <b>{m.name}</b>
-            <span>{m.title}</span>
-          </figcaption>
-        </figure>
-      ))}
+    <div className="stage-2d" data-count={members.length}>
+      <div className="panel-row">
+        {members.map((m) => {
+          const speaking = speakingId === m.cfg.id;
+          const st = states[m.cfg.id] ?? 'neutral';
+          // Writing shows only while the interviewer is not talking and has no stronger reaction on.
+          const state: AvatarState = writing[m.cfg.id] && !speaking && st === 'neutral' ? 'memo' : st;
+          return (
+            <figure key={m.cfg.id} className={`seat ${speaking ? 'speaking' : ''}`} data-testid={`seat-${m.cfg.id}`} data-state={state}>
+              <Interviewer look={m.look} state={state} speaking={speaking} title={`${m.name} ${m.title}`} live={!reduced} seed={m.cfg.seed} />
+              <figcaption className="nameplate">
+                <b>{m.name}</b>
+                <span>{m.title}</span>
+              </figcaption>
+            </figure>
+          );
+        })}
+      </div>
+      <div className="desk" aria-hidden="true" />
     </div>
   );
 }
