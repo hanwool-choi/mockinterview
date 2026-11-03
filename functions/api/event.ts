@@ -1,7 +1,7 @@
 import type { Env } from '../_lib/env';
 import { json } from '../_lib/http';
 
-const NAMES = new Set(['start', 'complete', 'drop', 'rating', 'fallback']);
+const NAMES = new Set(['start', 'complete', 'drop', 'rating', 'fallback', 'support_click']);
 
 /** Privacy-safe product metrics: event name + one short label + one number. No text, no ids. */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {

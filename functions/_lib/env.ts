@@ -4,6 +4,8 @@ export type Env = {
   DEVICE_SECRET?: string;
   TURNSTILE_SECRET?: string;
   TURNSTILE_SITEKEY?: string;
+  /** Where the 'support the token cost' button points (https only). Empty hides the button. */
+  DONATE_URL?: string;
   DAILY_GLOBAL_INTERVIEWS?: string;
   DAILY_DEVICE_INTERVIEWS?: string;
   DAILY_IP_INTERVIEWS?: string;

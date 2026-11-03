@@ -1,6 +1,6 @@
 import type { Guide as G } from '../../shared/schema';
 import { useT } from '../i18n';
-import { PenCheck, PenCross } from './Sheet';
+import { CheckIcon, CrossIcon, WeakIcon } from './Sheet';
 
 const PARTS = ['situation', 'task', 'action', 'result'] as const;
 
@@ -14,9 +14,7 @@ export function GuideView({ guide, compact = false }: { guide: G; compact?: bool
         <ol className="star-line" aria-label={t('guide.star')}>
           {PARTS.map((k) => (
             <li key={k} className={`star-${guide.star![k]}`}>
-              <span className="box" aria-hidden="true">
-                {guide.star![k] === 'ok' ? <PenCheck /> : guide.star![k] === 'weak' ? <span className="hand">△</span> : <PenCross />}
-              </span>
+              {guide.star![k] === 'ok' ? <CheckIcon /> : guide.star![k] === 'weak' ? <WeakIcon /> : <CrossIcon />}
               <b>{t(`guide.${k}`)}</b>
               <span className="visually-hidden">{t(`guide.${guide.star![k]}`)}</span>
             </li>

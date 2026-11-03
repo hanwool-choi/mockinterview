@@ -3,7 +3,9 @@ import type { Lang } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
 import { lookFor } from '../avatar/look';
 import { Icon } from '../components/Icon';
-import { PenCheck, RubricGrid, SheetFields, Stamp } from '../components/Sheet';
+import { CheckIcon, RubricGrid } from '../components/Sheet';
+import { Interviewer } from '../avatar/Interviewer';
+import { SupportNote, SupportPip } from '../components/Support';
 import { chunkDoc } from '../docs/chunk';
 import { buildTemplatePlan } from '../engine/templates';
 import { translate, UiLangContext, type Key } from '../i18n';
@@ -47,7 +49,6 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
   const [sel, setSel] = useState(3);
   const other: Lang = ui === 'ko' ? 'en' : 'ko';
   const reduceMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const s = SAMPLE[ui];
 
   // Section parts rise in once as they enter; content is visible by default without script.
   useEffect(() => {
@@ -80,60 +81,120 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
     <main className="landing">
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <h1 id="hero-title">{c.h1}</h1>
+          <p className="pill-badge">
+            <Icon name="sparkle" size={16} /> {c.badge}
+          </p>
+          <h1 id="hero-title">
+            {c.h1.split('\n').map((l, i, all) => (
+              <span key={i} className={i === all.length - 1 ? 'hl' : undefined}>
+                {l}
+              </span>
+            ))}
+          </h1>
           <p className="lead">{c.lead}</p>
           <div className="hero-actions">
             <button className="primary big" data-testid={`lang-${ui}`} onClick={() => onPick(ui)}>
-              {c.start} <Icon name="arrowRight" />
+              {c.startShort} <Icon name="arrowRight" />
             </button>
+            <a className="secondary big" href="#report">
+              <Icon name="doc" /> {c.sampleReport}
+            </a>
+          </div>
+          <p className="free-note">
+            {c.free}
             <button className="link other-lang" data-testid={`lang-${other}`} onClick={() => onPick(other)} lang={other}>
               {c.startOther}
             </button>
-          </div>
-          <p className="free-note">{c.free}</p>
+          </p>
         </div>
 
-        <figure className="hero-sheet">
-          <article className="sheet" aria-label={c.sheetNote} data-ui>
-            <header className="sheet-head">
-              <p className="sheet-title" aria-hidden="true">{t('sheet.title')}</p>
-              <SheetFields
-                fields={[
-                  [t('sheet.company'), s.company],
-                  [t('sheet.role'), s.role],
-                  [ui === 'ko' ? '지원자' : 'Candidate', c.sheetCandidate],
-                  [t('sheet.type'), ui === 'ko' ? `경력 ${s.years}년` : `${s.years} yrs experience`],
-                ]}
-              />
+        <figure className="hero-mock" aria-label={c.sheetNote}>
+          <div className="mock-window">
+            <div className="mock-bar" aria-hidden="true">
+              <span className="dots">
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
+            <div className="mock-head">
+              <span className="mock-brand">
+                <MiniLogo /> {ui === 'ko' ? '모두의면접관' : 'Modu Interviewer'}
+              </span>
+              <span className="mock-steps" aria-hidden="true">
+                <i className="on" />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="mock-pills">
+                <span className="pill">
+                  <Icon name="clock" size={14} /> 00:24:36
+                </span>
+                <span className="pill">{c.live}</span>
+              </span>
+            </div>
+            <div className="mock-stage">
+              <div className="panel-row">
+                {plan.interviewers.slice(0, 3).map((p, i) => (
+                  <figure key={p.id} className="seat">
+                    <Interviewer look={lookFor(PANEL[i])} state={i === 1 ? 'smile' : 'neutral'} speaking={i === 1 && !reduceMotion} live={!reduceMotion} seed={PANEL[i].seed} title={p.displayName} />
+                    <figcaption className="nameplate">
+                      <b>{p.displayName}</b>
+                      <span>{PANEL[i].rank === 'exec' || PANEL[i].role === 'other' ? translate(ui, `rank.${PANEL[i].rank}` as Key) : translate(ui, `role.${PANEL[i].role}` as Key)}</span>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              <div className="desk" aria-hidden="true" />
+            </div>
+            <div className="mock-caption">
+              <span className="wave">
+                <Icon name="wave" size={18} />
+              </span>
+              <span>
+                <b>
+                  {plan.interviewers[1]?.displayName} {c.asking}
+                </b>
+                {c.mockQuestion}
+              </span>
+            </div>
+          </div>
+          <aside className="mock-sheet">
+            <header>
+              <b>
+                <Icon name="doc" /> {t('sheet.title')}
+              </b>
+              <span className="total-pill">
+                {t('sheet.total')} <b>{SAMPLE_SHEET.score}</b>/100
+              </span>
             </header>
             <RubricGrid rubric={SAMPLE_SHEET.rubric} lang={ui} compact />
-            <div className="sheet-total">
-              <div>
-                <span className="sheet-k">{t('sheet.total')}</span>
-                <span className="hand big-hand">{SAMPLE_SHEET.score}</span>
-                <small>/100</small>
-              </div>
-              <div className="sheet-verdict">
-                <span className="sheet-k">{t('sheet.verdict')}</span>
-                <Stamp verdict={SAMPLE_SHEET.verdict} label={t(`report.verdict.${SAMPLE_SHEET.verdict}` as Key)} />
-              </div>
+            <div className="opinion">
+              <b>
+                <Icon name="sparkle" size={15} /> {t('sheet.opinion')}
+              </b>
+              <p>{SAMPLE_SHEET.opinion[ui]}</p>
             </div>
-            <div className="sheet-opinion">
-              <span className="sheet-k">{t('sheet.opinion')}</span>
-              <p className="hand opinion-hand">{SAMPLE_SHEET.opinion[ui]}</p>
-            </div>
-            <div className="sheet-signs" aria-hidden="true">
-              {plan.interviewers.map((p) => (
-                <span key={p.id}>
-                  <small>{ui === 'ko' ? '면접관' : 'Interviewer'}</small>
-                  <span className="hand">{p.displayName}</span>
-                </span>
-              ))}
-            </div>
-          </article>
-          <figcaption>{c.sheetNote}</figcaption>
+          </aside>
+          <figcaption className="visually-hidden">{c.sheetNote}</figcaption>
         </figure>
       </section>
+
+      <ul className="feature-strip">
+        {c.features.map(([icon, h, p]) => (
+          <li key={h}>
+            <span className="icon-tile">
+              <Icon name={icon as 'doc'} size={22} />
+            </span>
+            <span>
+              <b>{h}</b>
+              <small>{p}</small>
+            </span>
+          </li>
+        ))}
+      </ul>
 
       <section className="questions" id="route" aria-labelledby="q-title">
         <h2 id="q-title">{c.questionsH}</h2>
@@ -153,7 +214,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
                     {i >= 3 && i <= 5 && <em>{ui === 'ko' ? '이력서 인용' : 'quotes resume'}</em>}
                   </span>
                   <span className="q-by">{who.name}</span>
-                  <span className="q-tick">{sel === i && <PenCheck />}</span>
+                  <span className="q-tick">{sel === i && <CheckIcon />}</span>
                 </button>
               );
             })}
@@ -187,7 +248,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
 
       <section className="feature panel-feature" id="panel" aria-labelledby="panel-title">
         <figure className="shot wide">
-          <video src="/landing/room-loop.mp4" poster="/landing/room-loop-poster.webp" width={928} height={540} muted loop playsInline autoPlay={!reduceMotion} aria-label={c.heroVideoAlt} />
+          <img src="/landing/room.webp" alt={c.heroVideoAlt} width={1440} height={1100} loading="lazy" />
           <figcaption>{c.heroVideoCap}</figcaption>
         </figure>
         <div className="feature-copy">
@@ -196,7 +257,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
           <ul className="ticks">
             {c.panelList.map((x) => (
               <li key={x}>
-                <PenCheck />
+                <CheckIcon />
                 {x}
               </li>
             ))}
@@ -230,7 +291,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
           <p>{c.reportP}</p>
         </div>
         <figure className="shot tall">
-          <img src="/landing/report.webp" alt={c.reportAlt} width={1180} height={1347} loading="lazy" />
+          <img src="/landing/report.webp" alt={c.reportAlt} width={1180} height={1476} loading="lazy" />
         </figure>
       </section>
 
@@ -240,7 +301,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
           {c.privacy.map(([h, p]) => (
             <li key={h}>
               <span className="box" aria-hidden="true">
-                <PenCheck />
+                <CheckIcon />
               </span>
               <b>{h}</b>
               <span>{p}</span>
@@ -261,6 +322,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
         </div>
       </section>
 
+      <SupportPip where="start" show delayMs={12000} />
       <section className="close" aria-labelledby="close-title">
         <h2 id="close-title">{c.closeH}</h2>
         <div className="hero-actions">
@@ -271,7 +333,17 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
             {c.startOther}
           </button>
         </div>
+        <SupportNote where="start" />
       </section>
     </main>
+  );
+}
+
+function MiniLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2" y="4" width="17" height="17" rx="2" fill="none" stroke="currentColor" strokeWidth="2.5" />
+      <path d="M6 12.5 L10.5 17 L22 3" fill="none" stroke="#6b46c1" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

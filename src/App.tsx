@@ -8,6 +8,8 @@ import { Prepare } from './screens/Prepare';
 import { Report } from './screens/Report';
 import { Room } from './screens/Room';
 import { Start } from './screens/Start';
+import { Icon } from './components/Icon';
+import { DonateContext } from './components/Support';
 import { COPY } from './landing/copy';
 import { clearRun } from './state/useInterview';
 import { emptySetup, loadSetup, saveSetup, type Setup } from './state/setup';
@@ -55,8 +57,14 @@ export function App() {
     setSetup({ ...setup, uiLang: l });
   };
 
+  const startWith = (lang: Lang) => {
+    setSetup({ ...setup, lang, uiLang: uiTouched ? setup.uiLang : lang });
+    setScreen({ name: 'prepare' });
+  };
+
   return (
     <UiLangContext.Provider value={setup.uiLang}>
+      <DonateContext.Provider value={config.donateUrl ?? ''}>
       <div className={`app screen-${screen.name}`}>
         <header className="topbar no-print">
           <button className="brand" onClick={() => setScreen({ name: 'start' })}>
@@ -77,16 +85,14 @@ export function App() {
               <option value="ko">한국어</option>
               <option value="en">English</option>
             </select>
+            {screen.name === 'start' && (
+              <button className="primary top-cta" onClick={() => startWith(setup.uiLang)}>
+                {COPY[setup.uiLang].startShort} <Icon name="arrowRight" />
+              </button>
+            )}
           </div>
         </header>
-        {screen.name === 'start' && (
-          <Start
-            onPick={(lang) => {
-              setSetup({ ...setup, lang, uiLang: uiTouched ? setup.uiLang : lang });
-              setScreen({ name: 'prepare' });
-            }}
-          />
-        )}
+        {screen.name === 'start' && <Start onPick={startWith} />}
         {screen.name === 'prepare' && <Prepare setup={setup} onChange={setSetup} onBack={() => setScreen({ name: 'start' })} onNext={() => setScreen({ name: 'panel' })} />}
         {screen.name === 'panel' && (
           <Panel
@@ -121,6 +127,7 @@ export function App() {
           </div>
         </footer>
       </div>
+      </DonateContext.Provider>
     </UiLangContext.Provider>
   );
 }
@@ -130,7 +137,7 @@ function Logo() {
   return (
     <svg className="logo" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
       <rect x="2" y="4" width="17" height="17" fill="none" stroke="var(--ink)" strokeWidth="2.5" />
-      <path d="M6 12.5 L10.5 17 L22 3" fill="none" stroke="var(--pen)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 12.5 L10.5 17 L22 3" fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

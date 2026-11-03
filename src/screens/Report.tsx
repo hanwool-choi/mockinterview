@@ -4,9 +4,10 @@ import type { Report as R } from '../../shared/schema';
 import { Portrait2D } from '../avatar/Portrait2D';
 import { lookFor } from '../avatar/look';
 import { api } from '../api/client';
-import { RubricGrid, SheetFields, SheetProgress, Stamp } from '../components/Sheet';
+import { RubricGrid, SheetFields, SheetProgress, VerdictBadge } from '../components/Sheet';
 import { sheetRows } from '../landing/rows';
 import { GuideView } from '../components/Guide';
+import { SupportNote, SupportPip } from '../components/Support';
 import type { InterviewState } from '../engine/machine';
 import { useT, type Key } from '../i18n';
 import { averageRubric, download, toMarkdown } from '../report/export';
@@ -41,16 +42,16 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
         <div className="sheet-total">
           <div>
             <span className="sheet-k">{t('sheet.total')}</span>
-            <span className="hand big-hand">{p.score}</span>
+            <b className="big-num">{p.score}</b>
             <small>/100</small>
           </div>
           <div>
             <span className="sheet-k">{t('sheet.grade')}</span>
-            <span className={`hand big-hand grade-text grade-${p.grade}`}>{p.grade}</span>
+            <b className={`big-num grade-text grade-${p.grade}`}>{p.grade}</b>
           </div>
           <div className="sheet-verdict">
             <span className="sheet-k">{t('sheet.verdict')}</span>
-            <Stamp verdict={p.verdict} label={t(`report.verdict.${p.verdict}` as Key)} />
+            <VerdictBadge verdict={p.verdict} label={t(`report.verdict.${p.verdict}` as Key)} />
           </div>
         </div>
         <section className="sheet-opinion">
@@ -60,6 +61,7 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
           {report.local && <p className="badge">{t('report.local')}</p>}
         </section>
         <SheetProgress
+          showLabels
           ariaLabel={t('room.routeLabel')}
           cells={sheetRows(state.plan, setup.uiLang).map((st) => {
             const scored = state.items.find((it) => it.questionId === st.id && it.score && !it.skipped);
@@ -80,7 +82,6 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
                     </b>
                     <p>{c.comment}</p>
                   </div>
-                  <span className="sign hand" aria-hidden="true">{names[c.interviewerId]}</span>
                 </li>
               );
             })}
@@ -88,6 +89,8 @@ export function Report({ setup, report, state, onAgain }: { setup: Setup; report
         </section>
       </article>
 
+      <SupportNote where="report" />
+      <SupportPip where="report" show delayMs={2500} />
       <div className="report-grid">
         <section className="card">
           <h2>{t('report.strengths')}</h2>

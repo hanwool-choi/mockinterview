@@ -12,14 +12,14 @@ Audience: experienced job changers (3–10y) with a real interview coming. Actio
 
 ## Direction contract
 
-THESIS: The interviewer's evaluation sheet, handed to the candidate before the interview. Every answer fills a row; the report is the finished sheet with the verdict stamped. The page refuses the category default of headline + product screenshot + three feature cards.
+THESIS: A trustworthy AI interview service that shows the product working: the live room with the panel and the evaluation it produces.
 
-OWN-WORLD: A printed Korean 면접 평가표. White paper, navy-black form ink, 2px outer rules and 1px inner cell rules, grey label cells. One red pen for every evaluator mark: rings around a five-point cell, handwritten numbers (Nanum Pen Script), ticks, crosses, a rotated verdict stamp, signatures. Pretendard for print. No shadows, no gradients, no cream paper, no serif.
+OWN-WORLD: Owner-supplied lavender / purple SaaS mockup (2026-11-03). White surfaces, lavender glows, one purple accent and gradient, rounded cards with soft depth, Pretendard only, calm semi-realistic 2D interviewers. Supersedes the earlier metro-line and evaluation-sheet directions by the owner's instruction.
 
-STORY: The visitor sees the sheet they will be scored on (a fictional sample, rings drawing in, stamp pressing last), opens a question row to see it built from a resume line, sees the panel and the modes, sees the finished sheet as the report, and starts.
+STORY: See the room and the evaluation card, understand the three promises (questions from your documents, feedback per answer, a final sheet), try the question demo, see the panel, modes and report, read privacy and FAQ, start. Everything is free; token-cost support is invited, never required.
 
-FIRST VIEWPORT: Left: h1 "면접관의 평가표, / 면접 전에 먼저 채워보세요", one paragraph, ink button "내 면접 시작하기". Right: the sample evaluation sheet (지원자란, five rubric rows with rings and points, 총점, 판정 stamp, 종합 의견 in hand, three interviewer signatures).
+FIRST VIEWPORT: Left: pill badge, h1 "면접관의 평가표를, / 면접 전에 먼저 / 받아보세요" with a purple underline on the last line, lead, primary "무료로 면접 시작하기" and secondary "샘플 리포트 보기". Right: browser-window mock of the live room with a floating evaluation card. Below: three-item feature strip.
 
-FORM: Interview evaluation sheet, pick candidate 2 of the reroll list. seed:3a0c0af4cc843d01
+FORM: Owner mockup (image 2 of 2026-11-03 request).
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: tests, e2e, landing captures with provenance, DESIGN.md updated.

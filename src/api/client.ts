@@ -1,7 +1,7 @@
 import type { ApiResult, PlanRequest, QuotaReason, ReportRequest, ScoreRequest, SessionResponse } from '../../shared/api';
 import type { Plan, Report, Score } from '../../shared/schema';
 
-export type AppConfig = { turnstileSiteKey: string; fake: boolean };
+export type AppConfig = { turnstileSiteKey: string; fake: boolean; donateUrl?: string };
 
 async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<{ status: number; body: T | null }> {
   const ctl = new AbortController();
@@ -49,7 +49,7 @@ export const api = {
     return d?.text ? { ok: true, text: d.text } : { ok: false, reason: 'error' };
   },
   report: async (req: ReportRequest) => unwrap(await post<ApiResult<Report>>('/api/report', req, 130_000)),
-  track(name: 'start' | 'complete' | 'drop' | 'rating' | 'fallback', label = '', value = 0) {
+  track(name: 'start' | 'complete' | 'drop' | 'rating' | 'fallback' | 'support_click', label = '', value = 0) {
     try {
       const body = JSON.stringify({ name, label, value });
       if (navigator.sendBeacon) navigator.sendBeacon('/api/event', new Blob([body], { type: 'application/json' }));

@@ -1,6 +1,6 @@
 import { Icon } from './Icon';
 import { GuideView } from './Guide';
-import { PenRing, RubricGrid } from './Sheet';
+import { RubricGrid } from './Sheet';
 import type { Lang, Question, Score } from '../../shared/schema';
 import { useT } from '../i18n';
 
@@ -11,13 +11,10 @@ export function ScoreCard({ score, question, lang, onNext, onRetry, canRetry }: 
   return (
     <section className="score-card" data-testid="score-card">
       <header>
-        <div className={`grade grade-${score.grade}`}>
-          <span className="hand">{score.grade}</span>
-          <PenRing seed={2} />
-        </div>
+        <div className={`grade grade-${score.grade}`}>{score.grade}</div>
         <div>
           <div className="score-num">
-            <span className="hand">{score.score}</span>
+            <b>{score.score}</b>
             <small>/100</small>
           </div>
           {score.local && (

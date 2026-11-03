@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from '../components/Icon';
 import { SheetProgress } from '../components/Sheet';
 import { sheetRows } from '../landing/rows';
 import type { Report } from '../../shared/schema';
 import { AnswerBox } from '../components/AnswerBox';
+import { SupportPip } from '../components/Support';
 import { ScoreCard } from '../components/ScoreCard';
 import { membersFor, Stage } from '../components/Stage';
 import { currentQuestion, type InterviewState } from '../engine/machine';
@@ -23,11 +24,8 @@ export function Room({ setup, sid, fast, onDone }: { setup: Setup; sid: string; 
     const cfg = setup.interviewers.find((i) => i.id === id)!;
     return fromPlan || `${translate(setup.lang, `role.${cfg.role}` as Key)} · ${translate(setup.lang, `rank.${cfg.rank}` as Key)}`;
   };
-  const members = useMemo(
-    () => membersFor(setup, iv.nameOf, titleOf),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [setup, plan],
-  );
+  // Recomputed every render: names arrive with the plan (or its fallback) after the stage mounts.
+  const members = membersFor(setup, iv.nameOf, titleOf);
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' });
@@ -81,6 +79,7 @@ export function Room({ setup, sid, fast, onDone }: { setup: Setup; sid: string; 
           </button>
         </div>
       </header>
+      <SupportPip where="room" autoHideMs={15000} show={state.items.length >= 3 && (state.phase === 'FEEDBACK' || state.phase === 'TRANSITION' || state.phase === 'ASK')} />
       <div className="room-body">
         <div className="stage-col">
         <section className="stage-wrap">
@@ -94,7 +93,14 @@ export function Room({ setup, sid, fast, onDone }: { setup: Setup; sid: string; 
             </div>
           )}
           {iv.status === 'planning' && <div className="overlay">{t('room.reviewing')}</div>}
-          {iv.status === 'reporting' && <div className="overlay">{t('room.making')}</div>}
+          {iv.status === 'reporting' && (
+            <div className="overlay">
+              <div className="overlay-msg">
+                <b>{t('room.making')}</b>
+                <span>{t('support.reporting')}</span>
+              </div>
+            </div>
+          )}
           {state.phase === 'PAUSED' && <div className="overlay">{t('room.paused')}</div>}
         </section>
         {q && iv.status === 'running' && state.phase !== 'GREETING' && state.phase !== 'ICEBREAK' && (

@@ -10,7 +10,7 @@
   "start.uiLang": "Screen language",
   "start.f1": "Resume-probing questions",
   "start.f1d": "\"You wrote 20x growth…\" — questions grounded in your documents",
-  "start.f2": "3D interviewers that react",
+  "start.f2": "Interviewers that react",
   "start.f2d": "Nods, smiles, head tilts, frowns. Pick a pressure interviewer too",
   "start.f3": "A report with a hiring verdict",
   "start.f3d": "Scores per criterion, rewritten answers, questions for next time",
@@ -198,5 +198,13 @@
   "prep.ocrFail": "Could not read {n} image(s). Please paste that part yourself.",
   "prep.ocrQuota": "Today's image-reading limit is used up, so {n} image(s) were not read. Try again tomorrow or paste the text.",
   "prep.tooMany": "Up to {n} files at a time.",
-  "prep.privacy4": "Images and scanned PDFs are sent as they are to the AI provider to read the text; masking applies after reading. Crop out contact details or photos before uploading."
+  "prep.privacy4": "Images and scanned PDFs are sent as they are to the AI provider to read the text; masking applies after reading. Crop out contact details or photos before uploading.",
+  "support.title": "Modu Interviewer is free",
+  "support.body": "If it helped, or you got a good result, please chip in for the AI token cost. It goes a long way toward a better service.",
+  "support.cta": "Support the token cost",
+  "support.later": "Not now",
+  "support.close": "Close",
+  "support.soon": "Support opens soon.",
+  "support.inline": "Every interview and report is free. If it helped, please chip in for the AI token cost.",
+  "support.reporting": "Building your report. Everything is free; AI costs are covered by supporters."
 }
