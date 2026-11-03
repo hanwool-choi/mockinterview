@@ -114,7 +114,7 @@ export function Room({ setup, sid, fast, onDone }: { setup: Setup; sid: string; 
         )}
         </div>
         <section className="chat">
-          {iv.basicPlan && <p className="notice">{t('room.basicPlan')}</p>}
+          {iv.aiNote && <p className="notice" data-testid="ai-note">{t(iv.aiNote === 'paused' ? 'room.aiPaused' : 'room.aiBudget')}</p>}
           <div className="log" ref={logRef}>
             {iv.lines.map((l) => {
               const qq = l.questionId ? plan.questions.find((x) => x.id === l.questionId) : undefined;

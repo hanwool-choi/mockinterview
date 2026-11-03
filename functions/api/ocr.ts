@@ -4,6 +4,7 @@ import type { Env } from '../_lib/env';
 import { intVar } from '../_lib/env';
 import { guard, json, readJson } from '../_lib/http';
 import { callJson, type ChatMessage } from '../_lib/llm';
+import { charge, dailyLeft, paused } from '../_lib/budget';
 import { checkOrigin, deviceSecret, hashIp, kstDay } from '../_lib/security';
 
 type OcrRequest = { image: string; kind: 'jd' | 'resume' | 'portfolio'; lang: 'ko' | 'en' };
@@ -34,6 +35,8 @@ function messages(r: OcrRequest): ChatMessage[] {
 export async function handleOcr(req: Request, env: Env, fetchFn?: typeof fetch): Promise<Response> {
   return guard(async () => {
     if (!checkOrigin(req, env)) return json(403, { error: 'origin' });
+    if (await paused(env)) return json(503, { reason: 'paused' });
+    if ((await dailyLeft(env)) <= 0) return json(429, { reason: 'budget' });
     const body = await readJson<OcrRequest>(req, LIMITS.ocrBytes);
     if (!body || typeof body.image !== 'string' || !IMAGE.test(body.image) || !['jd', 'resume', 'portfolio'].includes(body.kind)) return json(400, { error: 'image' });
     const lang = body.lang === 'en' ? 'en' : 'ko';
@@ -53,10 +56,12 @@ export async function handleOcr(req: Request, env: Env, fetchFn?: typeof fetch):
       timeoutMs: 60_000,
       freeBudgetMs: 45_000,
       deadlineMs: 90_000,
+      maxTokens: 2500,
       fetchFn,
       fake: () => ({ text: DEMO[body.kind] }),
       validate: (d) => d.text.trim().length >= 10,
     });
+    await charge(env, null, 'ocr', r.ok ? r.model : 'fallback', r.usage);
     if (!r.ok) return json(200, { ok: false, fallback: true });
     return json(200, { ok: true, data: { text: r.data.text.trim().slice(0, 30_000) }, model: r.model });
   });

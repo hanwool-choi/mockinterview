@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { handleSession } from '../../functions/api/session';
-import { handlePlan } from '../../functions/api/plan';
 import { handleScore } from '../../functions/api/score';
 import { handleReport } from '../../functions/api/report';
-import { ScoreSchema, PlanSchema, ReportSchema } from '../../shared/schema';
+import { ScoreSchema, ReportSchema } from '../../shared/schema';
 import { memKV } from './memkv';
 
 const post = (path: string, body: unknown) =>
@@ -15,19 +14,14 @@ const question = { id: 'q1', stage: 'experience', askedBy: 'i1', text: 'MAU 20�
 async function newSession(env: never) {
   const r = await handleSession(post('/api/session', { turnstileToken: 'x' }), env);
   expect(r.status).toBe(200);
-  return (await r.json()) as { sid: string; deviceToken: string; remaining: number };
+  return (await r.json()) as { sid: string; deviceToken: string; ai: string };
 }
 
 describe('api (fake mode)', () => {
-  it('session → plan → score → report all succeed and validate', async () => {
+  it('session → score → report all succeed and validate', async () => {
     const env = { IV_KV: memKV(), DEVICE_SECRET: 's' } as never;
-    const { sid, remaining } = await newSession(env);
-    expect(remaining).toBe(2);
-    const plan = await handlePlan(post('/api/plan', { sid, lang: 'ko', company: 'C', role: 'PM', career: 'new', interviewers: ivs, chunks: [{ id: 'resume#1', kind: 'resume', text: 'MAU 20배' }] }), env);
-    const pj = (await plan.json()) as { ok: boolean; data: unknown };
-    expect(pj.ok).toBe(true);
-    expect(PlanSchema.safeParse(pj.data).success).toBe(true);
-
+    const { sid, ai } = await newSession(env);
+    expect(ai).toBe('on');
     const score = await handleScore(post('/api/score', { sid, lang: 'ko', question, answer: '제 기여는 40%였고 전환율을 3%p 올렸습니다.', thread: [], evidence: [], history: [], interviewers: ivs, followUpsUsed: 0, followUpLimit: 1 }), env);
     expect(score.status).toBe(200);
     const sj = (await score.json()) as { data: unknown };
@@ -53,12 +47,13 @@ describe('api (fake mode)', () => {
     const j = (await r.json()) as { data: { followUp: unknown } };
     expect(j.data.followUp).toBeNull();
   });
-  it('returns 429 with reason when device quota is exhausted', async () => {
-    const env = { IV_KV: memKV(), DEVICE_SECRET: 's', DAILY_DEVICE_INTERVIEWS: '1' } as never;
+  it('has no interview count limit: many sessions from one device all start', async () => {
+    const env = { IV_KV: memKV(), DEVICE_SECRET: 's' } as never;
     const first = await newSession(env);
-    const r = await handleSession(post('/api/session', { turnstileToken: 'x', deviceToken: first.deviceToken }), env);
-    expect(r.status).toBe(429);
-    expect(await r.json()).toEqual({ reason: 'device' });
+    for (let i = 0; i < 10; i++) {
+      const r = await handleSession(post('/api/session', { turnstileToken: 'x', deviceToken: first.deviceToken }), env);
+      expect(r.status).toBe(200);
+    }
   });
   it('rejects foreign origin with 403', async () => {
     const env = { IV_KV: memKV(), DEVICE_SECRET: 's' } as never;

@@ -10,8 +10,10 @@ id = "8b8d944e356845078ece1c9b81cad409"
 [vars]
 KAKAOPAY_URL = "https://qr.kakaopay.com/Ej7lelIaG"
 FAIRY_URL = ""
-DAILY_GLOBAL_INTERVIEWS = "75"
-DAILY_DEVICE_INTERVIEWS = "3"
+# Cost control: no interview count limit; AI spend is capped per session (quick $0.002, full $0.03) and per day.
+DAILY_BUDGET_USD = "2"
+SESSION_BUDGET_QUICK_USD = "0.002"
+SESSION_BUDGET_FULL_USD = "0.03"
 PAID_OVERFLOW = "on"
 # Cheap paid backups, tried in order when free models fail or exceed the free time budget (needs OpenRouter credits).
 PAID_MODEL = "qwen/qwen3.7-flash,deepseek/deepseek-v4.1-flash"

@@ -7,9 +7,6 @@ export type Env = {
   /** Support buttons: KakaoPay transfer-code link (https://qr.kakaopay.com/…) and Fairy project page (https://fairy.hada.io/…). Empty hides a button. */
   KAKAOPAY_URL?: string;
   FAIRY_URL?: string;
-  DAILY_GLOBAL_INTERVIEWS?: string;
-  DAILY_DEVICE_INTERVIEWS?: string;
-  DAILY_IP_INTERVIEWS?: string;
   DAILY_OCR_PER_IP?: string;
   DAILY_OCR_GLOBAL?: string;
   PREFERRED_MODELS?: string;
@@ -19,6 +16,15 @@ export type Env = {
   LLM_REASONING?: string;
   PAID_MONTHLY_CALLS?: string;
   ALLOWED_ORIGINS?: string;
+  /** Cost control (see functions/_lib/budget.ts). 'on' pauses every AI call; KV key ai:kill does the same without a redeploy. */
+  AI_KILL_SWITCH?: string;
+  DAILY_BUDGET_USD?: string;
+  SESSION_BUDGET_QUICK_USD?: string;
+  SESSION_BUDGET_FULL_USD?: string;
+  /** Bearer token for GET/POST /api/usage (ledger and kill switch). */
+  ADMIN_TOKEN?: string;
+  /** Minimum gap between AI calls of one session (ms); tests lower it. */
+  MIN_CALL_GAP_MS?: string;
   EVENTS?: AnalyticsEngineDataset;
 };
 

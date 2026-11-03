@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon';
 import type { Gender, InterviewerConfig, Personality, Rank, Role } from '../../shared/schema';
 import { api } from '../api/client';
 import { Portrait2D } from '../avatar/Portrait2D';
+import { AI_KEY } from '../state/useInterview';
 import { lookFor } from '../avatar/look';
 import { useT, type Key } from '../i18n';
 import { defaultInterviewers, type Setup } from '../state/setup';
@@ -77,11 +78,14 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
   const start = async () => {
     setBusy(true);
     setMsg('');
-    const r = await api.session(ts.token || undefined);
+    const r = await api.session(ts.token || undefined, setup.length);
     setBusy(false);
-    if (r.ok) return onStart(r.data.sid);
+    if (r.ok) {
+      sessionStorage.setItem(AI_KEY, r.data.ai === 'on' ? '' : r.data.ai);
+      return onStart(r.data.sid);
+    }
     ts.reset();
-    setMsg(r.reason === 'device' ? t('quota.device', { n: 3 }) : r.reason === 'global' ? t('quota.global') : t('quota.error'));
+    setMsg(t('quota.error'));
   };
 
   return (
@@ -138,6 +142,15 @@ export function Panel({ setup, onChange, onBack, onStart, siteKey }: { setup: Se
         ))}
       </div>
       <section className="options">
+        <fieldset className="mode-pick">
+          <legend>{t('panel.length')}</legend>
+          {(['quick', 'full'] as const).map((l) => (
+            <button key={l} className={`mode ${(setup.length ?? 'full') === l ? 'on' : ''}`} data-testid={`length-${l}`} onClick={() => onChange({ ...setup, length: l })}>
+              <b>{t(l === 'quick' ? 'panel.quick' : 'panel.full')}</b>
+              <span>{t(l === 'quick' ? 'panel.quickD' : 'panel.fullD')}</span>
+            </button>
+          ))}
+        </fieldset>
         <fieldset className="mode-pick">
           <legend>{t('panel.mode')}</legend>
           {(['practice', 'real'] as const).map((m) => (

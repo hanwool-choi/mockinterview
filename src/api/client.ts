@@ -1,5 +1,5 @@
-import type { ApiResult, PlanRequest, QuotaReason, ReportRequest, ScoreRequest, SessionResponse } from '../../shared/api';
-import type { Plan, Report, Score } from '../../shared/schema';
+import type { ApiResult, InterviewLength, QuotaReason, ReportRequest, ScoreRequest, SessionResponse } from '../../shared/api';
+import type { Report, Score } from '../../shared/schema';
 
 export type AppConfig = { turnstileSiteKey: string; fake: boolean; donate?: { kakao: string; fairy: string } };
 
@@ -17,7 +17,13 @@ async function post<T>(path: string, body: unknown, timeoutMs: number): Promise<
   }
 }
 
-const unwrap = <T>(r: { status: number; body: ApiResult<T> | null }): T | null => (r.status === 200 && r.body?.ok ? r.body.data : null);
+/** Why the server last refused an AI call ('paused' = operator stop, 'budget' = today's or this session's AI budget is spent). */
+export let lastRefusal: 'paused' | 'budget' | null = null;
+const unwrap = <T>(r: { status: number; body: ApiResult<T> | null }): T | null => {
+  const reason = (r.body as { reason?: string } | null)?.reason;
+  if ((r.status === 429 || r.status === 503) && (reason === 'paused' || reason === 'budget')) lastRefusal = reason;
+  return r.status === 200 && r.body?.ok ? r.body.data : null;
+};
 
 const DEVICE_KEY = 'iv:device';
 
@@ -30,16 +36,15 @@ export const api = {
       return { turnstileSiteKey: '', fake: true };
     }
   },
-  async session(turnstileToken?: string): Promise<{ ok: true; data: SessionResponse } | { ok: false; reason: QuotaReason | 'error' }> {
+  async session(turnstileToken?: string, length: InterviewLength = 'full'): Promise<{ ok: true; data: SessionResponse } | { ok: false; reason: QuotaReason | 'error' }> {
     const deviceToken = localStorage.getItem(DEVICE_KEY) ?? undefined;
-    const r = await post<SessionResponse & { reason?: QuotaReason }>('/api/session', { turnstileToken, deviceToken }, 15000);
+    const r = await post<SessionResponse & { reason?: QuotaReason }>('/api/session', { turnstileToken, deviceToken, length }, 15000);
     if (r.status === 200 && r.body?.sid) {
       localStorage.setItem(DEVICE_KEY, r.body.deviceToken);
       return { ok: true, data: r.body };
     }
     return { ok: false, reason: r.status === 429 && r.body?.reason ? r.body.reason : 'error' };
   },
-  plan: async (req: PlanRequest) => unwrap(await post<ApiResult<Plan>>('/api/plan', req, 200_000)),
   score: async (req: ScoreRequest, timeoutMs = 95_000) => unwrap(await post<ApiResult<Score>>('/api/score', req, timeoutMs)),
   /** Reads text from one image with the server's vision model. */
   async ocr(image: string, kind: 'jd' | 'resume' | 'portfolio', lang: 'ko' | 'en'): Promise<{ ok: true; text: string } | { ok: false; reason: 'quota' | 'error' }> {

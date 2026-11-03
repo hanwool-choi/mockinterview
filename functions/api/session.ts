@@ -1,7 +1,8 @@
 import type { SessionRequest } from '../../shared/api';
 import type { Env } from '../_lib/env';
 import { guard, json, readJson } from '../_lib/http';
-import { checkOrigin, createSession, deviceSecret, hashIp, kstDay, randomId, reserveSlot, signDevice, verifyDevice, verifyTurnstile } from '../_lib/security';
+import { checkOrigin, createSession, deviceSecret, kstDay, randomId, signDevice, verifyDevice, verifyTurnstile } from '../_lib/security';
+import { dailyLeft, paused } from '../_lib/budget';
 
 export async function handleSession(req: Request, env: Env): Promise<Response> {
   return guard(async () => {
@@ -15,10 +16,10 @@ export async function handleSession(req: Request, env: Env): Promise<Response> {
     const secret = deviceSecret(env);
     const deviceId = (body.deviceToken && (await verifyDevice(secret, body.deviceToken))) || randomId();
     const day = kstDay();
-    const slot = await reserveSlot(env, deviceId, day, await hashIp(secret, req.headers.get('CF-Connecting-IP')));
-    if (!slot.ok) return json(429, { reason: slot.reason });
-    const sid = await createSession(env, deviceId);
-    return json(200, { sid, deviceToken: await signDevice(secret, deviceId, day), remaining: slot.remaining ?? 0 });
+    // No interview count limit: cost is bounded by the session and daily budgets instead (functions/_lib/budget.ts).
+    const sid = await createSession(env, deviceId, body.length === 'quick' ? 'quick' : 'full');
+    const ai = (await paused(env)) ? 'paused' : (await dailyLeft(env)) <= 0 ? 'budget' : 'on';
+    return json(200, { sid, deviceToken: await signDevice(secret, deviceId, day), ai });
   });
 }
 

@@ -75,11 +75,8 @@
   "panel.threeD": "Turn off for light 2D portraits",
   "panel.start": "Start interview",
   "panel.starting": "Getting the room ready…",
-  "quota.device": "You've used today's free interviews on this device ({n} per day). Come back after midnight KST.",
-  "quota.global": "Today's free interviews are all taken. New slots open at midnight KST.",
   "quota.error": "Couldn't start. Please try again shortly.",
   "room.reviewing": "The panel is reviewing your documents…",
-  "room.basicPlan": "AI is busy, so we're using the standard question set.",
   "room.you": "Me",
   "room.evidence": "Show source",
   "room.intent": "Why they ask this",
@@ -208,5 +205,12 @@
   "support.inline": "Every interview and report is free. If it helped, please chip in for the AI token cost.",
   "support.reporting": "Building your report. Everything is free; AI costs are covered by supporters.",
   "support.kakao": "Support via KakaoPay",
-  "support.fairy": "Support via Fairy"
+  "support.fairy": "Support via Fairy",
+  "room.aiPaused": "The AI interviewers are paused right now. This interview uses standard questions and rule-based scoring, not AI.",
+  "room.aiBudget": "Today's AI budget is spent, so this interview uses standard questions and rule-based scoring, not AI. Support helps more people get AI interviews tomorrow.",
+  "panel.length": "Length",
+  "panel.quick": "Quick (3 questions)",
+  "panel.quickD": "Introduction and two tailored questions, then a short summary. About 5 minutes",
+  "panel.full": "Full (11 questions)",
+  "panel.fullD": "All 11 questions in real order with follow-ups and the detailed report. About 20 minutes"
 }

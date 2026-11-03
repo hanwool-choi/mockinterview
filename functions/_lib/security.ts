@@ -1,5 +1,5 @@
-import { SESSION_CAPS, type QuotaReason } from '../../shared/api';
-import { type Env, intVar } from './env';
+import { newSession, type Length } from './budget';
+import type { Env } from './env';
 
 const enc = new TextEncoder();
 const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -43,50 +43,15 @@ export function kstDay(d = new Date()): string {
   return new Date(d.getTime() + 9 * 3600 * 1000).toISOString().slice(0, 10);
 }
 
-const TWO_DAYS = 2 * 86400;
 
 export async function hashIp(secret: string, ip: string | null): Promise<string | undefined> {
   return ip ? (await hmac(secret, `ip:${ip}`)).slice(0, 24) : undefined;
 }
 
-/** Daily quota. The IP counter stops clients that simply drop their device token. KV is not atomic: caps are best-effort under concurrent abuse. */
-export async function reserveSlot(env: Env, deviceId: string, day: string, ipHash?: string): Promise<{ ok: boolean; reason?: QuotaReason; remaining?: number }> {
-  const gKey = `quota:g:${day}`;
-  const dKey = `quota:d:${day}:${deviceId}`;
-  const iKey = ipHash ? `quota:i:${day}:${ipHash}` : null;
-  const g = Number((await env.IV_KV.get(gKey)) ?? 0);
-  const d = Number((await env.IV_KV.get(dKey)) ?? 0);
-  const ipCount = iKey ? Number((await env.IV_KV.get(iKey)) ?? 0) : 0;
-  const gMax = intVar(env.DAILY_GLOBAL_INTERVIEWS, 75);
-  const dMax = intVar(env.DAILY_DEVICE_INTERVIEWS, 3);
-  const iMax = intVar(env.DAILY_IP_INTERVIEWS, 6);
-  if (g >= gMax) return { ok: false, reason: 'global' };
-  if (d >= dMax || ipCount >= iMax) return { ok: false, reason: 'device' };
-  await env.IV_KV.put(gKey, String(g + 1), { expirationTtl: TWO_DAYS });
-  await env.IV_KV.put(dKey, String(d + 1), { expirationTtl: TWO_DAYS });
-  if (iKey) await env.IV_KV.put(iKey, String(ipCount + 1), { expirationTtl: TWO_DAYS });
-  return { ok: true, remaining: dMax - d - 1 };
-}
-
-type Counts = Record<keyof typeof SESSION_CAPS, number>;
-const SIX_HOURS = 6 * 3600;
-
-export async function createSession(env: Env, deviceId: string): Promise<string> {
+export async function createSession(env: Env, deviceId: string, length: Length = 'full'): Promise<string> {
   const sid = randomId();
-  const counts: Counts = { plan: 0, score: 0, report: 0 };
-  await env.IV_KV.put(`sess:${sid}`, JSON.stringify({ deviceId, counts }), { expirationTtl: SIX_HOURS });
+  await newSession(env, sid, deviceId, length);
   return sid;
-}
-
-export async function bumpSessionCall(env: Env, sid: string, kind: keyof typeof SESSION_CAPS): Promise<'ok' | 'limit' | 'unknown'> {
-  if (!sid || typeof sid !== 'string' || sid.length > 64) return 'unknown';
-  const key = `sess:${sid}`;
-  const s = (await env.IV_KV.get(key, 'json')) as { deviceId: string; counts: Counts } | null;
-  if (!s) return 'unknown';
-  if (s.counts[kind] >= SESSION_CAPS[kind]) return 'limit';
-  s.counts[kind]++;
-  await env.IV_KV.put(key, JSON.stringify(s), { expirationTtl: SIX_HOURS });
-  return 'ok';
 }
 
 export function checkOrigin(req: Request, env: Env): boolean {

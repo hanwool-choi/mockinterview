@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { reserveSlot } from '../../functions/_lib/security';
 import { handleSession } from '../../functions/api/session';
 import { handleScore } from '../../functions/api/score';
 import { callJson } from '../../functions/_lib/llm';
@@ -9,21 +8,6 @@ import { memKV } from './memkv';
 
 const post = (path: string, body: unknown, headers: Record<string, string> = {}) =>
   new Request(`https://app.example${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
-
-describe('review fix: per-IP daily cap', () => {
-  it('blocks a client that drops its device token after the IP cap', async () => {
-    const env = { IV_KV: memKV(), DAILY_IP_INTERVIEWS: '2' } as never;
-    expect((await reserveSlot(env, 'd1', '2026-10-31', 'ip-hash')).ok).toBe(true);
-    expect((await reserveSlot(env, 'd2', '2026-10-31', 'ip-hash')).ok).toBe(true);
-    expect(await reserveSlot(env, 'd3', '2026-10-31', 'ip-hash')).toEqual({ ok: false, reason: 'device' });
-  });
-  it('session endpoint applies the IP cap to token-less requests', async () => {
-    const env = { IV_KV: memKV(), DEVICE_SECRET: 's', DAILY_IP_INTERVIEWS: '1' } as never;
-    const h = { 'CF-Connecting-IP': '1.2.3.4' };
-    expect((await handleSession(post('/api/session', {}, h), env)).status).toBe(200);
-    expect((await handleSession(post('/api/session', {}, h), env)).status).toBe(429);
-  });
-});
 
 describe('review fix: fail closed in production', () => {
   it('refuses sessions when a real key is set but DEVICE_SECRET or TURNSTILE_SECRET is missing', async () => {

@@ -5,10 +5,10 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { handleSession } from '../functions/api/session';
-import { handlePlan } from '../functions/api/plan';
 import { handleScore } from '../functions/api/score';
 import { handleReport } from '../functions/api/report';
 import { handleOcr } from '../functions/api/ocr';
+import { handleUsage } from '../functions/api/usage';
 import { isFake } from '../functions/_lib/env';
 import { donateLinks } from '../functions/api/config';
 
@@ -26,7 +26,7 @@ const kv = {
   put: async (k: string, v: string, o?: { expirationTtl?: number }) => { store.set(k, v); if (o?.expirationTtl) expires.set(k, Date.now() + o.expirationTtl * 1000); else expires.delete(k); },
   delete: async (k: string) => { store.delete(k); expires.delete(k); },
 };
-const env = { ...vars, IV_KV: kv, DAILY_DEVICE_INTERVIEWS: '50', DAILY_IP_INTERVIEWS: '50' } as never;
+const env = { ...vars, IV_KV: kv } as never;
 const LOG = process.env.LLM_LOG === '1';
 const realFetch = globalThis.fetch;
 const loggingFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -39,7 +39,7 @@ const loggingFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   return r;
 }) as typeof fetch;
 globalThis.fetch = loggingFetch;
-const handlers: Record<string, (req: Request, env: never) => Promise<Response>> = { '/api/session': handleSession, '/api/plan': handlePlan, '/api/score': handleScore, '/api/report': handleReport, '/api/ocr': handleOcr };
+const handlers: Record<string, (req: Request, env: never) => Promise<Response>> = { '/api/session': handleSession, '/api/score': handleScore, '/api/report': handleReport, '/api/ocr': handleOcr, '/api/usage': handleUsage };
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.webp': 'image/webp', '.mp4': 'video/mp4', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml' };
 const port = Number(process.env.PORT || 8796);
 createServer(async (req, res) => {

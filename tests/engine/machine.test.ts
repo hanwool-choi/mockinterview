@@ -119,3 +119,15 @@ describe('LOAD', () => {
     expect(s1).toBe(loaded);
   });
 });
+
+describe('machine: next question rewritten by the turn call', () => {
+  it('replaces a not-yet-asked question, never the current or an earlier one', () => {
+    let s = toAnswering('practice');
+    s = run(s, { type: 'REWRITE', index: 1, text: '새로 쓴 질문입니다?', intent: '새 의도' });
+    expect(s.plan.questions[1].text).toBe('새로 쓴 질문입니다?');
+    expect(s.plan.questions[1].intent).toBe('새 의도');
+    const before = s.plan.questions[0].text;
+    s = run(s, { type: 'REWRITE', index: 0, text: '바꾸면 안 됨', intent: '' });
+    expect(s.plan.questions[0].text).toBe(before);
+  });
+});

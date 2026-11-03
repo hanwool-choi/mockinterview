@@ -1,3 +1,4 @@
+import type { InterviewLength } from '../../shared/api';
 import type { InterviewerConfig, Lang } from '../../shared/schema';
 import type { HairStyle } from '../avatar/look';
 
@@ -14,6 +15,8 @@ export type Setup = {
   interviewers: InterviewerConfig[];
   overrides: Record<string, { skinTone?: string; hairStyle?: HairStyle }>;
   mode: 'practice' | 'real';
+  /** quick: 3 questions + a short summary; full: 11 questions + the detailed report. Both free. */
+  length: InterviewLength;
   voice: boolean;
   threeD: boolean;
 };
@@ -28,7 +31,7 @@ export const defaultInterviewers = (): InterviewerConfig[] => [
 export const emptySetup = (lang: Lang = 'ko'): Setup => ({
   lang, uiLang: lang, company: '', role: '', career: 'exp', years: 3, name: '',
   docs: { jd: '', resume: '', portfolio: '' },
-  interviewers: defaultInterviewers().slice(0, 3), overrides: {}, mode: 'practice', voice: false, threeD: true,
+  interviewers: defaultInterviewers().slice(0, 3), overrides: {}, mode: 'practice', length: 'full', voice: false, threeD: true,
 });
 
 const KEY = 'iv:setup';

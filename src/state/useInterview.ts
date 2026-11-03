@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import type { ReportRequest, ScoreRequest } from '../../shared/api';
 import { LIMITS, SESSION_CAPS } from '../../shared/api';
 import type { Chunk, Expression, Plan, Report, Score } from '../../shared/schema';
-import { api } from '../api/client';
+import { api, lastRefusal } from '../api/client';
 import { BM25 } from '../docs/bm25';
 import { budgetChunks, chunkDoc } from '../docs/chunk';
 import { maskPII } from '../docs/mask';
@@ -12,8 +12,9 @@ import { localReport } from '../engine/localReport';
 import { localScore } from '../engine/localScore';
 import { currentAsker, currentQuestion, currentText, followUpsLeft, initialState, reduce, type InterviewEvent, type InterviewState } from '../engine/machine';
 import { adjustReactions } from '../engine/reactions';
-import { buildTemplatePlan, fillMissing } from '../engine/templates';
-import { ackFor, dedupeQuestions, sanitizeFollowUp } from '../engine/dialogue';
+import { buildTemplatePlan, QUICK_STAGES } from '../engine/templates';
+import { jdFacts } from '../docs/jd';
+import { ackFor, sanitizeFollowUp, similarity } from '../engine/dialogue';
 import { translate } from '../i18n';
 import { createTts, voiceProfileFor, type TtsEngine } from '../voice/tts';
 import { makeReportRequest, makeScoreRequest } from './requests';
@@ -29,7 +30,13 @@ export type Line = { id: number; who: string; text: string; kind: 'q' | 'a' | 's
 export type RunStatus = 'planning' | 'running' | 'reporting' | 'done';
 
 const RUN_KEY = 'iv:run';
-type Persisted = { sid: string; plan: Plan; state: InterviewState; lines: Line[]; basicPlan: boolean; report: Report | null; icebreakOpen: boolean };
+/** Set by the panel screen from the session response when AI is off before the interview starts. */
+export const AI_KEY = 'iv:ai';
+export type AiNote = 'paused' | 'budget' | null;
+type Persisted = { sid: string; plan: Plan; state: InterviewState; lines: Line[]; aiNote: AiNote; report: Report | null; icebreakOpen: boolean };
+
+/** Stages whose question the turn call may rewrite (the opening, reverse and closing lines stay fixed). */
+const REWRITABLE = new Set(['motivation', 'experience', 'competency', 'company', 'situational']);
 
 const pickRandom = <T,>(xs: T[], fallback: T): T => (xs.length ? xs[Math.floor(Math.random() * xs.length)] : fallback);
 
@@ -58,12 +65,14 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
   const chunks = useMemo(() => buildChunks(setup), [setup]);
   const bm25 = useMemo(() => new BM25(chunks, L), [chunks, L]);
   const template = useMemo(
-    () => buildTemplatePlan({ lang: L, company: setup.company, role: setup.role, career: setup.career, interviewers: ivs, chunks }),
-    [L, setup.company, setup.role, setup.career, ivs, chunks],
+    () => buildTemplatePlan({ lang: L, company: setup.company, role: setup.role, career: setup.career, interviewers: ivs, chunks, stages: setup.length === 'quick' ? QUICK_STAGES : undefined }),
+    [L, setup.company, setup.role, setup.career, setup.length, ivs, chunks],
   );
+  const facts = useMemo(() => jdFacts(maskPII(setup.docs.jd, { lang: L, name: setup.name }).text), [setup.docs.jd, setup.name, L]);
 
   const [plan, setPlan] = useState<Plan | null>(restored?.plan ?? null);
-  const [basicPlan, setBasicPlan] = useState(restored?.basicPlan ?? false);
+  // Set once the server refuses AI calls: the rest of the interview uses the question bank and rule scoring, clearly labelled.
+  const [aiNote, setAiNote] = useState<AiNote>(restored?.aiNote ?? (sessionStorage.getItem(AI_KEY) as AiNote) ?? null);
   const [state, rawDispatch] = useReducer(reduce, restored?.state ?? initialState(template, setup.mode, ivs));
   const [lines, setLines] = useState<Line[]>(restored?.lines ?? []);
   const [speaking, setSpeakingState] = useState<{ id: string; text: string } | null>(null);
@@ -96,13 +105,13 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
   // persist
   useEffect(() => {
     if (!plan) return;
-    const p: Persisted = { sid, plan, state, lines, basicPlan, report, icebreakOpen };
+    const p: Persisted = { sid, plan, state, lines, aiNote, report, icebreakOpen };
     try {
       sessionStorage.setItem(RUN_KEY, JSON.stringify(p));
     } catch {
       /* quota: ignore */
     }
-  }, [sid, plan, state, lines, basicPlan, report, icebreakOpen]);
+  }, [sid, plan, state, lines, aiNote, report, icebreakOpen]);
 
   const pushLine = useCallback((l: Omit<Line, 'id'>) => {
     setLines((xs) => [...xs, { ...l, id: ++lineId.current }]);
@@ -134,35 +143,13 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
 
   const skipSpeech = useCallback(() => skipRef.current?.(), []);
 
-  // 1) plan
+  // 1) plan: the question bank, right away. No AI call here: each turn's call rewrites the next question instead.
   useEffect(() => {
     if (plan) return;
-    let cancelled = false;
-    (async () => {
-      panelRef.current && ivs.forEach((iv) => panelRef.current?.setAction(iv.id, 'flip'));
-      const res = await api.plan({ sid, lang: L, company: setup.company, role: setup.role, career: setup.career, years: setup.years, interviewers: ivs, chunks });
-      if (cancelled) return;
-      let p: Plan;
-      if (res) {
-        p = dedupeQuestions(fillMissing(res, template), template);
-        const known = new Set(ivs.map((i) => i.id));
-        p = { ...p, questions: p.questions.map((q) => (known.has(q.askedBy) ? q : { ...q, askedBy: template.questions.find((t) => t.stage === q.stage)?.askedBy ?? ivs[0].id })) };
-        const names = new Map(res.interviewers.map((i) => [i.id, i]));
-        p = { ...p, interviewers: template.interviewers.map((t) => ({ ...t, ...(names.get(t.id) ?? {}) })) };
-      } else {
-        p = template;
-        setBasicPlan(true);
-        api.track('fallback', 'plan');
-      }
-      ivs.forEach((iv) => panelRef.current?.setAction(iv.id, null));
-      setPlan(p);
-      rawDispatch({ type: 'LOAD', state: { ...initialState(p, setup.mode, ivs), phase: 'GREETING' } });
-      setStatus('running');
-      api.track('start', L);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    setPlan(template);
+    rawDispatch({ type: 'LOAD', state: { ...initialState(template, setup.mode, ivs), phase: 'GREETING' } });
+    setStatus('running');
+    api.track('start', L);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -186,6 +173,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       }
       for (const c of bm25.search(`${q.text} ${q.mustHit.join(' ')} ${item.answer}`, 4)) if (ev.size < 4) ev.set(c.id, c);
       const asker = ivs.find((i) => i.id === q.askedBy) ?? ivs[0];
+      const nextQ = cur.plan.questions[cur.qIndex + 1];
       const req: ScoreRequest = makeScoreRequest({
         sid, lang: L, question: { ...q, text: item.asked }, answer: item.answer, thread: cur.thread.slice(0, -1),
         evidence: [...ev.values()], history: cur.items.slice(0, -1).map((i) => i.score?.summary ?? '').filter(Boolean).slice(-6),
@@ -193,12 +181,20 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
         // No budget left: the limit equals what was used, so the server drops any follow-up.
         followUpLimit: followUpsLeft(cur) > 0 ? followUpLimit(asker.personality) : cur.followUpsUsed,
         asked: [...askedRef.current], upcoming: cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text),
+        jdFacts: facts,
+        next: nextQ && REWRITABLE.has(nextQ.stage) ? { stage: nextQ.stage, askedBy: nextQ.askedBy, draft: nextQ.text, intent: nextQ.intent } : undefined,
       });
+      // Use the rewritten next question unless it repeats something already asked.
+      const applyNext = (sc: Score) => {
+        const t = sc.next?.text;
+        if (!t || !nextQ || [...askedRef.current].some((a) => similarity(a, t) > 0.6)) return;
+        dispatch({ type: 'REWRITE', index: cur.qIndex + 1, text: t, intent: sc.next?.intent ?? '' });
+      };
       const upcoming = cur.plan.questions.slice(cur.qIndex + 1).map((x) => x.text);
       const clean = (sc: Score): Score => sanitizeFollowUp(sc, q, askedRef.current, upcoming);
       const local = () => clean(localScore({ ...q, askedBy: item.askedBy }, item.answer, L, [...ev.values()][0]?.text));
       // Respect the per-session cap client-side: past it, score locally without calling the API.
-      if (scoreCalls.current >= SESSION_CAPS.score) {
+      if (scoreCalls.current >= SESSION_CAPS.score || aiNote) {
         scoring.current = -1;
         dispatch({ type: 'SCORE_FAILED', score: local() });
         return;
@@ -208,6 +204,8 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
         const r = await api.score(req);
         if (!r) api.track('fallback', 'score');
         scoring.current = -1;
+        if (r) applyNext(r);
+        else if (lastRefusal) setAiNote(lastRefusal);
         dispatch(r ? { type: 'SCORE_READY', score: clean(r) } : { type: 'SCORE_FAILED', score: local() });
         return;
       }
@@ -218,15 +216,18 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       const first = await Promise.race([remote, timer]);
       scoring.current = -1;
       if (first) {
+        applyNext(first);
         dispatch({ type: 'SCORE_READY', score: clean(first) });
         return;
       }
       dispatch({ type: 'SCORE_FAILED', score: { ...local(), followUp: null } });
       const late = await remote;
+      if (late) applyNext(late);
+      else if (lastRefusal) setAiNote(lastRefusal);
       if (late) dispatch({ type: 'SCORE_LATE', itemIndex, score: { ...late, followUp: null } });
       else api.track('fallback', 'score');
     },
-    [bm25, chunks, dispatch, ivs, L, opts.fast, sid],
+    [aiNote, bm25, chunks, dispatch, facts, ivs, L, opts.fast, sid],
   );
 
   const makeReport = useCallback(
@@ -237,8 +238,8 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       const scored = latest.items.filter((i) => i.score && !i.skipped).map((i) => ({ questionId: i.questionId, stage: i.stage, score: i.score as Score }));
       const display = p.interviewers.map((i) => ({ id: i.id, displayName: i.displayName, title: i.title }));
       let r: Report | null = null;
-      if (scored.length) {
-        const req: ReportRequest = makeReportRequest({ sid, lang: L, company: setup.company, role: setup.role, interviewers: display, items: scored });
+      if (scored.length && !aiNote) {
+        const req: ReportRequest = makeReportRequest({ sid, lang: L, company: setup.company, role: setup.role, interviewers: display, items: scored, brief: setup.length === 'quick' });
         r = await api.report(req);
         if (!r) api.track('fallback', 'report');
       }
@@ -248,7 +249,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
       setStatus('done');
       api.track('complete', cur.mode, final.publicSummary.score);
     },
-    [L, setup.company, setup.role, sid],
+    [aiNote, L, setup.company, setup.role, setup.length, sid],
   );
 
   // 2) phase side effects
@@ -346,7 +347,7 @@ export function useInterview(setup: Setup, sid: string, opts: { fast: boolean })
   const answerOpen = (s.phase === 'ANSWERING' || s.phase === 'REVERSE_QA' || (s.phase === 'ICEBREAK' && icebreakOpen)) && !speaking;
 
   return {
-    status, plan: plan ?? s.plan, state: s, lines, speaking, report, basicPlan, icebreakOpen, answerOpen, chunks,
+    status, plan: plan ?? s.plan, state: s, lines, speaking, report, aiNote, icebreakOpen, answerOpen, chunks,
     nameOf, setPanel: (p: PanelApi | null) => (panelRef.current = p),
     submit, skip, skipSpeech,
     next: () => dispatch({ type: 'NEXT' }),

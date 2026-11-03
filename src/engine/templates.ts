@@ -2,6 +2,8 @@ import type { Chunk, InterviewerConfig, Lang, Plan, Question, Stage } from '../.
 import { assignInterviewers } from './assign';
 
 export const STAGE_PLAN: Stage[] = ['intro', 'motivation', 'experience', 'experience', 'experience', 'competency', 'competency', 'company', 'situational', 'reverse', 'closing'];
+/** Quick interview: the bank's introduction, then two questions the turn calls rewrite from the answers. */
+export const QUICK_STAGES: Stage[] = ['intro', 'experience', 'competency'];
 
 type T = { text: string; intent: string; mustHit: string[]; redFlags: string[]; outline: string; seeds: [string, string] };
 type Ctx = { company: string; role: string; quote: string; career: 'new' | 'exp' };
@@ -61,12 +63,12 @@ function claimChunks(chunks: Chunk[]): Chunk[] {
   return [...docs].sort((a, b) => digits(b) - digits(a));
 }
 
-export function buildTemplatePlan(input: { lang: Lang; company: string; role: string; career: 'new' | 'exp'; interviewers: InterviewerConfig[]; chunks: Chunk[] }): Plan {
+export function buildTemplatePlan(input: { lang: Lang; company: string; role: string; career: 'new' | 'exp'; interviewers: InterviewerConfig[]; chunks: Chunk[]; stages?: Stage[] }): Plan {
   const bank = input.lang === 'ko' ? KO : EN;
   const claims = claimChunks(input.chunks);
   const used: Partial<Record<Stage, number>> = {};
   let expN = 0;
-  const questions: Question[] = STAGE_PLAN.map((stage, i) => {
+  const questions: Question[] = (input.stages ?? STAGE_PLAN).map((stage, i) => {
     const n = used[stage] ?? 0;
     used[stage] = n + 1;
     const ev = stage === 'experience' ? claims[expN++ % Math.max(1, claims.length)] : undefined;

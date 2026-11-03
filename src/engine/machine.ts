@@ -32,7 +32,9 @@ export type InterviewEvent =
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
   | { type: 'END_EARLY' }
-  | { type: 'LOAD'; state: InterviewState };
+  | { type: 'LOAD'; state: InterviewState }
+  /** The turn call rewrote an upcoming question for this candidate. */
+  | { type: 'REWRITE'; index: number; text: string; intent: string };
 
 export const initialState = (plan: Plan, mode: Mode, interviewers: InterviewerConfig[]): InterviewState => ({
   phase: 'LOBBY', mode, plan, interviewers, qIndex: 0, followUpsUsed: 0, retriesUsed: 0, pendingFollowUp: null, thread: [], items: [],
@@ -71,6 +73,12 @@ function attach(s: InterviewState, score: Score): InterviewState {
 
 export function reduce(s: InterviewState, e: InterviewEvent): InterviewState {
   if (e.type === 'LOAD') return e.state;
+  if (e.type === 'REWRITE') {
+    // Only questions not yet asked may change.
+    if (e.index <= s.qIndex || e.index >= s.plan.questions.length || !e.text.trim()) return s;
+    const questions = s.plan.questions.map((q, i) => (i === e.index ? { ...q, text: e.text.trim(), intent: e.intent || q.intent } : q));
+    return { ...s, plan: { ...s.plan, questions } };
+  }
   if (e.type === 'END_EARLY') return s.phase === 'REPORT' ? s : { ...s, phase: 'REPORT' };
   if (e.type === 'PAUSE') return s.phase === 'PAUSED' || s.phase === 'REPORT' ? s : { ...s, phase: 'PAUSED', prevPhase: s.phase };
   if (s.phase === 'PAUSED' && s.prevPhase === 'SCORING' && (e.type === 'SCORE_READY' || e.type === 'SCORE_FAILED')) {

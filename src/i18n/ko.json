@@ -75,11 +75,8 @@
   "panel.threeD": "끄면 가벼운 2D 초상화로 진행해요",
   "panel.start": "면접 시작",
   "panel.starting": "입장 준비 중…",
-  "quota.device": "오늘 이 기기의 무료 면접 횟수(하루 {n}회)를 다 썼어요. 내일 0시(KST)에 다시 열려요.",
-  "quota.global": "오늘 준비된 무료 면접이 모두 마감됐어요. 내일 0시(KST)에 다시 열려요.",
   "quota.error": "입장에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "room.reviewing": "면접관들이 자료를 검토하고 있어요…",
-  "room.basicPlan": "AI 연결이 원활하지 않아 기본 질문 세트로 진행합니다.",
   "room.you": "나",
   "room.evidence": "근거 보기",
   "room.intent": "면접관 의도 보기",
@@ -208,5 +205,12 @@
   "support.inline": "모든 면접과 리포트는 무료예요. 도움이 되었다면 AI 토큰 비용을 후원해 주세요.",
   "support.reporting": "리포트를 만드는 동안 잠시만요. 모든 기능은 무료이고, AI 비용은 후원으로 운영됩니다.",
   "support.kakao": "카카오페이로 후원",
-  "support.fairy": "Fairy로 후원"
+  "support.fairy": "Fairy로 후원",
+  "room.aiPaused": "지금은 AI 면접관이 쉬는 중이에요. 이번 면접은 AI가 아닌 기본 질문과 규칙 기반 간이 채점으로 진행됩니다.",
+  "room.aiBudget": "오늘 준비된 AI 비용을 다 써서, 이번 면접은 AI가 아닌 기본 질문과 규칙 기반 간이 채점으로 진행됩니다. 후원해 주시면 내일 더 많은 분이 AI 면접을 볼 수 있어요.",
+  "panel.length": "면접 길이",
+  "panel.quick": "빠른 면접 (3문항)",
+  "panel.quickD": "자기소개와 맞춤 질문 2개, 끝나면 짧은 요약 평가. 약 5분",
+  "panel.full": "실전 면접 (11문항)",
+  "panel.fullD": "실제 순서 그대로 11문항과 꼬리질문, 상세 리포트. 약 20분"
 }

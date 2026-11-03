@@ -85,6 +85,8 @@ export const ScoreSchema = z.object({
   reactions: z.array(ReactionSchema).default([]),
   summary: str.default(''),
   guide: GuideSchema.optional(),
+  /** The next question, rewritten for this candidate (null when not asked for or not usable). */
+  next: z.object({ text: str, intent: str.default('') }).nullable().optional(),
 });
 export type Score = z.infer<typeof ScoreSchema> & { local?: boolean };
 

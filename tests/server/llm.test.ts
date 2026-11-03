@@ -40,7 +40,7 @@ describe('callJson', () => {
       return b.reasoning ? new Response('{"error":{"code":400}}', { status: 400 }) : chat('{"a":7}');
     }) as unknown as typeof fetch;
     const r = await callJson(env(), { messages: [], schema, timeoutMs: 5000, fetchFn: f, fake: () => ({ a: 0 }) });
-    expect(r).toEqual({ ok: true, data: { a: 7 }, model: 'm/one:free' });
+    expect(r).toMatchObject({ ok: true, data: { a: 7 }, model: 'm/one:free' });
     expect(bodies.length).toBe(2);
   });
 
@@ -52,7 +52,7 @@ describe('callJson', () => {
       return m === 'm/one:free' ? new Response('rate', { status: 429 }) : chat('{"a":5}');
     }) as unknown as typeof fetch;
     const r = await callJson(env(), { messages: [{ role: 'user', content: 'x' }], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
-    expect(r).toEqual({ ok: true, data: { a: 5 }, model: 'm/two:free' });
+    expect(r).toMatchObject({ ok: true, data: { a: 5 }, model: 'm/two:free' });
     expect(seen).toEqual(['m/one:free', 'm/two:free']);
   });
   it('reports fallback after 3 failing models', async () => {
@@ -68,14 +68,14 @@ describe('callJson', () => {
     let n = 0;
     const f = (async () => (++n === 1 ? chat('{"a":"bad"}') : chat('{"a":7}'))) as unknown as typeof fetch;
     const r = await callJson(env(), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
-    expect(r).toEqual({ ok: true, data: { a: 7 }, model: 'm/one:free' });
+    expect(r).toMatchObject({ ok: true, data: { a: 7 }, model: 'm/one:free' });
     expect(n).toBe(2);
   });
   it('uses fake when no key and never calls fetch', async () => {
     let called = false;
     const f = (async () => { called = true; return chat('{}'); }) as unknown as typeof fetch;
     const r = await callJson({ IV_KV: memKV() } as never, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 9 }) });
-    expect(r).toEqual({ ok: true, data: { a: 9 }, model: 'fake' });
+    expect(r).toMatchObject({ ok: true, data: { a: 9 }, model: 'fake' });
     expect(called).toBe(false);
   });
   it('treats timeout as failure and moves on', async () => {
@@ -174,5 +174,30 @@ describe('account-wide free quota', () => {
     const r = await callJson(e, { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
     expect(seen).toEqual(['paid/a']);
     expect(r.ok && r.model).toBe('paid/a');
+  });
+});
+
+describe('callJson usage metering', () => {
+  const withUsage = (content: string, usage: Record<string, number>) => new Response(JSON.stringify({ choices: [{ message: { content } }], usage }), { status: 200 });
+  it('asks OpenRouter for usage and returns tokens and cost, including failed attempts', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    let n = 0;
+    const f = (async (_u: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      n++;
+      return n === 1 ? withUsage('not json', { prompt_tokens: 100, completion_tokens: 10, cost: 0.00001 }) : withUsage('{"a":3}', { prompt_tokens: 120, completion_tokens: 20, cost: 0.00002 });
+    }) as unknown as typeof fetch;
+    const r = await callJson(env(), { messages: [], schema, timeoutMs: 1000, maxTokens: 300, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r.ok).toBe(true);
+    expect(bodies[0].usage).toEqual({ include: true });
+    expect(bodies[0].max_tokens).toBe(300);
+    expect(r.usage).toEqual({ calls: 2, tokensIn: 220, tokensOut: 30, costUsd: 0.00003 });
+  });
+  it('reports usage on fallback too', async () => {
+    const f = (async () => withUsage('nope', { prompt_tokens: 50, completion_tokens: 5, cost: 0 })) as unknown as typeof fetch;
+    const r = await callJson(env(), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r.ok).toBe(false);
+    expect(r.usage.calls).toBeGreaterThan(0);
+    expect(r.usage.tokensIn).toBe(50 * r.usage.calls);
   });
 });

@@ -16,7 +16,7 @@ let server;
 let BASE = process.env.BASE_URL;
 if (!BASE) {
   BASE = 'http://localhost:8799';
-  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY=', '--binding', 'OPENROUTER_API_KEY=', '--persist-to', mkdtempSync(join(tmpdir(), 'iv-e2e-'))], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
+  server = spawn('npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8799', '--log-level', 'error', '--binding', 'TURNSTILE_SITEKEY=', '--binding', 'OPENROUTER_API_KEY=', '--binding', 'MIN_CALL_GAP_MS=1', '--persist-to', mkdtempSync(join(tmpdir(), 'iv-e2e-'))], { stdio: 'ignore', detached: true, env: { ...process.env, CI: '1' } });
   // Kill the whole process group (npx → wrangler → workerd) on any exit, so no stale server keeps the port.
   const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch {} };
   process.on('exit', stop);
@@ -29,7 +29,7 @@ if (!BASE) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function runFlow(browser, { name, viewport, lang, mode, panel }) {
+async function runFlow(browser, { name, viewport, lang, mode, panel, length = 'full' }) {
   const page = await browser.newPage({ viewport });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -42,6 +42,7 @@ async function runFlow(browser, { name, viewport, lang, mode, panel }) {
   await page.getByTestId(`count-${panel}`).click();
   if (panel > 1) await page.getByTestId('personality-1').selectOption('pressure');
   await page.getByTestId(`mode-${mode}`).click();
+  await page.getByTestId(`length-${length}`).click();
   await page.getByTestId('start-interview').click();
   await page.getByTestId('room').waitFor({ timeout: 20000 });
   await sleep(1500);
@@ -140,10 +141,11 @@ try {
   const flows = [
     { name: 'ko-practice-pc', viewport: { width: 1440, height: 900 }, lang: 'ko', mode: 'practice', panel: 3 },
     { name: 'en-real-mobile', viewport: { width: 390, height: 844 }, lang: 'en', mode: 'real', panel: 2 },
+    { name: 'ko-quick-pc', viewport: { width: 1440, height: 900 }, lang: 'ko', mode: 'practice', panel: 3, length: 'quick' },
   ];
   for (const f of flows) {
     const r = await runFlow(browser, f);
-    const ok = r.reached && r.answers >= 9 && r.errors.length === 0 && (f.mode === 'practice' ? r.sawFeedback : !r.sawFeedback);
+    const ok = r.reached && r.answers >= (f.length === 'quick' ? 3 : 9) && (f.length !== 'quick' || r.answers <= 7) && r.errors.length === 0 && (f.mode === 'practice' ? r.sawFeedback : !r.sawFeedback);
     console.log(`${ok ? 'PASS' : 'FAIL'} ${r.name}: report=${r.reached} answers=${r.answers} feedback=${r.sawFeedback} errors=${JSON.stringify(r.errors)}`);
     if (!ok) failed = true;
   }

@@ -45,3 +45,13 @@ describe('claim quote', () => {
     expect(q.text).not.toContain('홍길동');
   });
 });
+
+describe('quick interview plan', () => {
+  it('has exactly three questions: introduction from the bank, then one resume and one competency question', async () => {
+    const { buildTemplatePlan, QUICK_STAGES } = await import('../../src/engine/templates');
+    expect(QUICK_STAGES).toEqual(['intro', 'experience', 'competency']);
+    const p = buildTemplatePlan({ lang: 'ko', company: 'C', role: 'PM', career: 'exp', interviewers: [{ id: 'a', role: 'hr', rank: 'lead', gender: 'female', personality: 'warm', seed: 1 }], chunks: [{ id: 'resume#1', kind: 'resume', text: '전환율 61% → 72% 개선' }], stages: QUICK_STAGES });
+    expect(p.questions.map((q) => q.stage)).toEqual(['intro', 'experience', 'competency']);
+    expect(p.questions[1].text).toContain('61%');
+  });
+});

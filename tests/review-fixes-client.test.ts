@@ -8,12 +8,11 @@ import type { Plan } from '../shared/schema';
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 
 describe('review fix: byte budget for Korean documents', () => {
-  it('keeps a huge Korean upload (incl. JD) under the plan byte limit', () => {
+  it('keeps a huge Korean upload (incl. JD) within the document budget', () => {
     const big = (n: number) => '한국어 포트폴리오 문장입니다. '.repeat(n);
     const chunks = [...chunkDoc('jd', big(4000)), ...chunkDoc('resume', big(3000)), ...chunkDoc('portfolio', big(6000))];
     const out = budgetChunks(chunks, LIMITS.docBytes, '포트폴리오');
-    const payload = JSON.stringify({ sid: 'x'.repeat(24), lang: 'ko', company: '회사', role: '직무', career: 'exp', years: 3, interviewers: [], chunks: out });
-    expect(bytes(payload)).toBeLessThan(LIMITS.planBytes);
+    expect(bytes(JSON.stringify(out))).toBeLessThan(LIMITS.docBytes + 20_000);
     expect(out.some((c) => c.kind === 'jd')).toBe(true);
   });
 });
@@ -52,5 +51,22 @@ describe('report request stays under the byte limit', () => {
     const req = makeReportRequest({ sid: 's', lang: 'ko', company: '회사', role: '직무', interviewers: [], items: Array.from({ length: 30 }, (_, i) => ({ questionId: `q${i}`, stage: 'experience' as const, score })) });
     expect(bytes(JSON.stringify(req))).toBeLessThan(LIMITS.reportBytes);
     expect(req.items[0].score.score).toBe(60);
+  });
+});
+
+describe('turn request stays small (no whole conversation)', () => {
+  it('a late turn with long history is still a few KB', () => {
+    const long = '긴 답변 문장입니다. '.repeat(400);
+    const q = { id: 'q', stage: 'experience' as const, askedBy: 'a', text: '질문', intent: 'i', mustHit: [], redFlags: [], evidenceIds: [], answerOutline: 'o', followUpSeeds: ['a', 'b', 'c'] };
+    const req = makeScoreRequest({
+      sid: 's', lang: 'ko', question: q, answer: long, thread: Array(6).fill({ q: long, a: long }),
+      evidence: Array(8).fill({ id: 'resume#1', kind: 'resume', text: long }), history: Array(20).fill(long), interviewers: [],
+      followUpsUsed: 0, followUpLimit: 1, asked: Array(20).fill(long), upcoming: Array(10).fill(long), jdFacts: long,
+      next: { stage: 'company', askedBy: 'a', draft: long, intent: long },
+    });
+    expect(req.history.length).toBe(4);
+    expect(req.upcoming!.length).toBe(2);
+    expect(req.evidence.length).toBe(3);
+    expect(bytes(JSON.stringify(req))).toBeLessThan(40_000);
   });
 });
