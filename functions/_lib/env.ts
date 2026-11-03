@@ -3,7 +3,7 @@ export type Env = {
   OPENROUTER_API_KEY?: string;
   /** Google AI Studio key: Gemini models are called directly and tried first. */
   GEMINI_API_KEY?: string;
-  /** Comma list of Gemini model ids, tried in order (default: gemini-3.5-flash-lite, gemini-3.8-flash). */
+  /** Comma list of Gemini model ids, tried in order (default: gemini-2.5-flash-lite, gemini-3.5-flash-lite). */
   GEMINI_MODELS?: string;
   /** 'free' (default, recorded at $0) or 'paid' (priced from GEMINI_PRICES). */
   GEMINI_TIER?: string;

@@ -229,6 +229,12 @@ describe('callJson with Google Gemini (direct API)', () => {
     const paid = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1', GEMINI_TIER: 'paid', GEMINI_PRICES: 'm1:0.3/2.5' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
     expect(paid.usage.costUsd).toBeCloseTo(1000 * 0.3e-6 + 200 * 2.5e-6, 10);
   });
+  it('the default models are priced on the paid tier, so budgets can stop them', async () => {
+    const f = (async () => gem('{"a":1}')) as unknown as typeof fetch;
+    const r = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_TIER: 'paid' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });
+    expect(r).toMatchObject({ ok: true, model: 'gemini:gemini-2.5-flash-lite' });
+    expect(r.usage.costUsd).toBeCloseTo(1000 * 0.1e-6 + 200 * 0.4e-6, 10);
+  });
   it('falls back to OpenRouter when Gemini is rate limited', async () => {
     const f = (async (u: string) => (String(u).includes('googleapis') ? new Response('quota', { status: 429 }) : chat('{"a":9}'))) as unknown as typeof fetch;
     const r = await callJson(env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' }), { messages: [], schema, timeoutMs: 1000, fetchFn: f, fake: () => ({ a: 0 }) });

@@ -37,9 +37,9 @@ class HttpError extends Error {
 /** Models called through Google's Gemini API directly are written "gemini:<model>"; everything else goes to OpenRouter. */
 const GEMINI_PREFIX = 'gemini:';
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-export const DEFAULT_GEMINI_MODELS = 'gemini-3.5-flash-lite,gemini-3.8-flash';
+export const DEFAULT_GEMINI_MODELS = 'gemini-2.5-flash-lite,gemini-3.5-flash-lite';
 /** USD per 1M tokens (input/output), used only when GEMINI_TIER=paid. Override with GEMINI_PRICES "model:in/out,...". */
-const GEMINI_PRICES: Record<string, [number, number]> = { 'gemini-3.5-flash-lite': [0.3, 2.5], 'gemini-3.8-flash': [0.825, 4.125] };
+const GEMINI_PRICES: Record<string, [number, number]> = { 'gemini-2.5-flash-lite': [0.1, 0.4], 'gemini-3.5-flash-lite': [0.3, 2.5], 'gemini-3.8-flash': [0.825, 4.125] };
 
 function geminiCost(env: Env, model: string, tokensIn: number, tokensOut: number): number {
   if (env.GEMINI_TIER !== 'paid') return 0; // free tier: Google does not bill, tokens are still counted
