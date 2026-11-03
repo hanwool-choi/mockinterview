@@ -12,6 +12,9 @@ Primary: experienced professionals (roughly 3–10 years) who are changing jobs 
 ## Product Purpose
 모두의면접관 lets anyone run a realistic mock interview built from their own resume, portfolio, the job posting and the company name. A panel of 3D interviewers (configured by function, level, gender and personality, including a pressure interviewer) runs the interview in a real order — icebreaking, self-introduction, motivation, resume-verification questions, competency, company, situational, reverse questions, closing — reacts with facial expressions, scores answers, and ends with a final report including a hiring-tendency verdict. Success: the candidate walks into the real interview having already been asked the hard questions about their own claims.
 
+## Voice
+A maker's story, not a B2B pitch: "interviews kept coming, I studied companies and memorised answers, then froze when they asked about my own resume — so I just built this." First person, plain spoken Korean, on the side of job seekers and career changers. Free, no sign-up, no limit; AI token costs are covered by voluntary support (KakaoPay, Fairy).
+
 ## Positioning
 Questions are grounded in the candidate's own documents: each resume-verification question cites the exact passage it came from ("근거 보기"), and the server drops questions whose cited evidence does not exist. Generic question banks and chat-style AI interviewers cannot truthfully claim this.
 
@@ -25,7 +28,7 @@ Questions are grounded in the candidate's own documents: each resume-verificatio
 ## Capabilities and Constraints
 - Stack: Vite + React + TypeScript, three.js procedural avatars, Cloudflare Pages Functions + KV, OpenRouter free models with fallback; deployed at ai-mock-interview-4rq.pages.dev.
 - Free daily quotas (global, per device, per IP) and Turnstile bot check.
-- **Pricing: undecided — to be added later.** No payment, accounts or plans exist yet; do not show prices or a checkout.
+- **Free, supported by donations.** No payment, accounts, plans or interview limits; AI spend is capped by session and daily budgets.
 - English product name: undecided (inferred working label: "Modu Interviewer").
 
 ## Brand Commitments

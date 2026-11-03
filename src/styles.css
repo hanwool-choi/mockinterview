@@ -217,6 +217,21 @@ main { width: 100%; max-width: 1240px; margin: 0 auto; padding: 2.5rem var(--mar
 .feature-strip b { display: block; font-size: 1.08rem; }
 .feature-strip small { color: var(--ink-2); font-size: 0.92rem; }
 
+/* the maker's story */
+.pains { margin-top: var(--gap-section); }
+.pains h2, .story h2 { font-size: var(--t-h2); }
+.pain-list { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; counter-reset: pain; }
+.pain-list li { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 1.5rem 1.5rem 1.3rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.6rem; }
+.pain-h { font-size: 1.2rem; line-height: 1.35; letter-spacing: -0.02em; }
+.pain-h::before { counter-increment: pain; content: counter(pain, decimal-leading-zero); display: block; font-size: 0.85rem; color: var(--accent); font-weight: 800; margin-bottom: 0.5rem; }
+.pain-list p { margin: 0; color: var(--ink-2); }
+.pain-list .pain-fix { margin-top: auto; padding-top: 0.8rem; border-top: 1px dashed var(--line); color: var(--accent-ink); font-weight: 700; display: flex; gap: 0.4rem; align-items: flex-start; }
+.pain-fix .icon { margin-top: 0.25em; }
+.story { margin-top: var(--gap-section); display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 2.5rem; align-items: start; }
+.story-note { background: var(--beige); border-radius: 24px; padding: clamp(1.5rem, 4vw, 2.6rem); font-size: 1.12rem; line-height: 1.85; }
+.story-note p { margin: 0 0 1em; }
+.story-sign { color: var(--ink-2); font-weight: 700; font-size: 1rem; margin: 0 !important; }
+.close h2 { white-space: pre-line; }
 .questions { margin-top: var(--gap-section); }
 .questions h2, .feature h2, .faq h2, .close h2, .privacy-field h2 { font-size: var(--t-h2); }
 .questions h2 { max-width: 18ch; }
@@ -537,6 +552,7 @@ main.report { max-width: calc(980px + 2 * var(--margin)); }
   .report-feature .feature-copy { position: static; }
   .top-links { display: none; }
   .feature-strip { grid-template-columns: 1fr; }
+  .pain-list, .story { grid-template-columns: 1fr; }
   .feature-strip li + li { border-left: 0; padding-left: 0.6rem; border-top: 1px solid var(--line); padding-top: 1rem; }
   .mock-sheet { position: relative; width: auto; right: auto; top: auto; margin: -1.5rem 1rem 0; }
   .sheet-fields { grid-template-columns: 1fr 1fr; }

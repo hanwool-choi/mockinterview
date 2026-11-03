@@ -52,7 +52,7 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
 
   // Section parts rise in once as they enter; content is visible by default without script.
   useEffect(() => {
-    const els = [...document.querySelectorAll<HTMLElement>('.landing .feature > *, .landing .modes-grid > *, .landing .privacy-field > h2, .landing .privacy-list > li, .landing .faq > *, .landing .close > *')];
+    const els = [...document.querySelectorAll<HTMLElement>('.landing .pain-list > li, .landing .story-note, .landing .feature > *, .landing .modes-grid > *, .landing .privacy-field > h2, .landing .privacy-list > li, .landing .faq > *, .landing .close > *')];
     els.forEach((el, i) => {
       el.classList.add('reveal');
       el.style.setProperty('--d', `${(i % 3) * 80}ms`);
@@ -201,6 +201,31 @@ export function Start({ onPick }: { onPick: (l: Lang) => void }) {
           </li>
         ))}
       </ul>
+
+      <section className="pains" aria-labelledby="pain-title">
+        <h2 id="pain-title">{c.painH}</h2>
+        <ol className="pain-list">
+          {c.pains.map(([h, p, fix]) => (
+            <li key={h}>
+              <b className="pain-h">{h}</b>
+              <p>{p}</p>
+              <p className="pain-fix">
+                <Icon name="arrowRight" size={16} /> {fix}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="story" aria-labelledby="story-title">
+        <h2 id="story-title">{c.storyH}</h2>
+        <div className="story-note">
+          {c.story.map((para) => (
+            <p key={para.slice(0, 12)}>{para}</p>
+          ))}
+          <p className="story-sign">— {c.storySign}</p>
+        </div>
+      </section>
 
       <section className="questions" id="route" aria-labelledby="q-title">
         <h2 id="q-title">{c.questionsH}</h2>
