@@ -114,3 +114,37 @@ describe('claim choice and Korean grammar', () => {
     expect(new Set(exp.map((t) => t.split('"')[1])).size).toBe(3);
   });
 });
+
+describe('places in extracted and restructured documents', () => {
+  it('layout output: "회사 | 직함 | 기간" line under a ## section heading', () => {
+    const t = '## 경력\n\n오늘장보기 | 프로덕트 기획 매니저 | 2021.03 ~ 현재\n\n정기배송 구독 서비스를 0→1로 기획, 출시 1년 만에 구독자 4만 명 확보\n장바구니 재구매 추천 기능 기획: 재구매율 18% → 27% 개선';
+    expect(claimAnchor(t, 'ko').where).toBe('오늘장보기에 계실 때');
+  });
+  it('table row: the first cell that is not a date', () => {
+    expect(claimAnchor('2021.03 ~ 현재 | 오늘장보기 | 매니저 | 재구매율 18% → 27% 개선', 'ko').where).toBe('오늘장보기에 계실 때');
+  });
+  it('restructured: [경력사항] then "회사 (기간) 직함" lines', () => {
+    const t = '[경력사항]\n오늘장보기 (2021.03 ~ 현재) 매니저\n- 장바구니 재구매 추천 기능 기획으로 재구매율 18% → 27% 개선';
+    expect(claimAnchor(t, 'ko').where).toBe('오늘장보기에 계실 때');
+  });
+  it('portfolio heading names the project; a section heading names nothing', () => {
+    expect(claimAnchor('## 1. 예매 대기열 시스템 (플레이티켓, 2022)\n\n결과: 동시접속 30만 명 처리, 오픈 42회 동안 장애 0건', 'ko', 80, undefined, 'portfolio').where).toBe("포트폴리오의 '예매 대기열 시스템' 프로젝트에서");
+    expect(claimAnchor('## 김가상\n\n## 성과\n\n재구매율 18% → 27% 개선', 'ko').where).toBe('이력서에');
+  });
+});
+
+describe('what counts as an achievement', () => {
+  const pf = '[프로젝트] 예매 대기열 시스템 (플레이티켓, 2022)\n- 문제: 동시접속이 몰려 서버가 다운되고, 공정성 민원이 월 400건 이상 발생.\n- 결과: 동시접속 30만 명 처리, 오픈 42회 동안 장애 0건.\n\n[프로젝트] 간편결제 3종 연동 (플레이티켓, 2023)\n- 결과: 결제 전환율 61% → 72%. 단, CS 문의가 출시 첫 달 1.4배 늘었음.';
+  it('never quotes education years or lines in non-achievement sections', () => {
+    const cv = '[경력] 오늘장보기 (2021.03 ~ 현재) 매니저\n- 재구매율 18% → 27% 개선\n\n[학력]\n가상대학교 경영학과\n2012 ~ 2018\n\n[기본정보]\n지원분야: 서비스 기획 5년';
+    const qs = buildTemplatePlan({ ...input, chunks: chunkDoc('resume', cv) }).questions.filter((x) => x.stage === 'experience').map((q) => q.text).join(' ');
+    expect(qs).not.toMatch(/2012 ~ 2018|가상대학교|지원분야/);
+  });
+  it('prefers results over problem statements, names projects without their aside, quotes one sentence', () => {
+    const qs = buildTemplatePlan({ ...input, chunks: chunkDoc('portfolio', pf) }).questions.filter((x) => x.stage === 'experience').map((q) => q.text);
+    expect(qs.join(' ')).toContain("포트폴리오의 '예매 대기열 시스템' 프로젝트에서 \"동시접속 30만 명 처리");
+    expect(qs.join(' ')).not.toContain('(플레이티켓');
+    expect(qs.join(' ')).toContain('"결제 전환율 61% → 72%"');
+    expect(qs.slice(0, 2).join(' ')).not.toContain('서버가 다운');
+  });
+});

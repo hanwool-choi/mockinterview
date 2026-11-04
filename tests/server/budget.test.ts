@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { memKV } from './memkv';
-import { createSession } from '../../functions/_lib/security';
+import { createSession, kstDay } from '../../functions/_lib/security';
 import { charge, gate, readDay, SESSION_BUDGET_USD } from '../../functions/_lib/budget';
 
 const env = (extra: Record<string, unknown> = {}) => ({ IV_KV: memKV(), ...extra }) as never;
 const use = (costUsd: number) => ({ calls: 1, tokensIn: 1000, tokensOut: 200, costUsd });
-const DAY = '2026-11-03';
+// Sessions are counted on the real (KST) day they start, so the ledger day must be today too.
+const DAY = kstDay();
 
 describe('budget gate', () => {
   it('default caps: quick $0.02, full $0.10 per session', () => {

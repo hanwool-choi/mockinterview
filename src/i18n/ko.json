@@ -28,6 +28,8 @@
   "prep.paste": "여기에 붙여넣거나 파일을 올리세요 (PDF·DOCX·TXT, 10MB 이하)",
   "prep.upload": "파일 올리기",
   "prep.reading": "읽는 중…",
+  "prep.structuring": "문서 구조를 정리하는 중…",
+  "prep.structured": "경력·프로젝트별로 구조를 정리했어요. 내용은 원문 그대로이니 한 번 확인해 주세요.",
   "prep.scanned": "글자를 거의 찾지 못했어요. 내용을 직접 붙여넣어 주세요.",
   "prep.tooBig": "10MB 이하 파일만 올릴 수 있어요.",
   "prep.masked": "개인정보 {n}건을 가렸어요",

@@ -11,6 +11,8 @@ import type { Docs, Setup } from '../state/setup';
 
 const MAX_FILE = 10 * 1024 * 1024;
 const MAX_FILES = 8;
+/** Same cap as the server's /api/structure. */
+const MAX_STRUCTURE = 20_000;
 type Kind = keyof Docs;
 
 function DocField({ kind, label, value, onChange, setup, optional }: { kind: Kind; label: string; value: string; onChange: (v: string | ((prev: string) => string)) => void; setup: Setup; optional?: boolean }) {
@@ -58,6 +60,16 @@ function DocField({ kind, label, value, onChange, setup, optional }: { kind: Kin
                 if (r.text.trim()) {
                   const m = maskPII(r.text, { lang: setup.lang, name: setup.name });
                   setMasked((x) => x + m.hits);
+                  // PDF and Word lose their layout in extraction: have the model rearrange it into sections
+                  // (facts checked on the server). Only masked text leaves the browser; on any failure the local text stays.
+                  if (kind !== 'jd' && files.some((f) => /\.(pdf|docx)$/i.test(f.name) || f.type === 'application/pdf') && m.text.length <= MAX_STRUCTURE) {
+                    setBusy(t('prep.structuring'));
+                    const tidy = await api.structure(m.text, kind, setup.lang);
+                    if (tidy && tidy !== m.text) {
+                      m.text = tidy;
+                      setNote(t('prep.structured'));
+                    }
+                  }
                   // Several uploads into one field are joined in the order they arrive.
                   onChange((prev) => (prev.trim() ? `${prev.trim()}\n\n${m.text}` : m.text));
                 }

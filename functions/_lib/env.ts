@@ -16,6 +16,9 @@ export type Env = {
   FAIRY_URL?: string;
   DAILY_OCR_PER_IP?: string;
   DAILY_OCR_GLOBAL?: string;
+  /** Daily caps on resume structuring (per IP / everyone); defaults 30 / 1500. */
+  DAILY_STRUCTURE_PER_IP?: string;
+  DAILY_STRUCTURE_GLOBAL?: string;
   PREFERRED_MODELS?: string;
   PAID_OVERFLOW?: string;
   PAID_MODEL?: string;

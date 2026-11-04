@@ -1,4 +1,5 @@
 import { encodeJpeg, MAX_PDF_PAGES, MAX_SIDE } from './image';
+import { htmlToText, layoutText, type PdfItem } from './layout';
 
 async function loadPdf(file: File) {
   const pdfjs = await import('pdfjs-dist');
@@ -35,21 +36,16 @@ export async function extractText(file: File): Promise<string> {
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
-      let line = '';
-      const lines: string[] = [];
-      for (const item of content.items as { str?: string; hasEOL?: boolean }[]) {
-        line += item.str ?? '';
-        if (item.hasEOL) lines.push(line), (line = '');
-      }
-      if (line) lines.push(line);
-      pages.push(lines.join('\n'));
+      // By position, not by the order the file stores text in (see layout.ts).
+      pages.push(layoutText(content.items as PdfItem[], page.getViewport({ scale: 1 }).width));
     }
     return pages.join('\n\n');
   }
   if (name.endsWith('.docx')) {
     const mammoth = await import('mammoth');
-    const r = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-    return r.value;
+    // HTML keeps headings, lists and tables, which raw text drops.
+    const r = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    return htmlToText(r.value);
   }
   return file.text();
 }

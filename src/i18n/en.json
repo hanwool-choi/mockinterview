@@ -28,6 +28,8 @@
   "prep.paste": "Paste here or upload a file (PDF, DOCX, TXT up to 10MB)",
   "prep.upload": "Upload file",
   "prep.reading": "Reading…",
+  "prep.structuring": "Organising the document…",
+  "prep.structured": "Organised by job and project. The wording is unchanged; please give it a quick check.",
   "prep.scanned": "We found almost no text. Please paste the content instead.",
   "prep.tooBig": "Files must be 10MB or smaller.",
   "prep.masked": "Masked {n} personal details",

@@ -8,6 +8,7 @@ import { handleSession } from '../functions/api/session';
 import { handleScore } from '../functions/api/score';
 import { handleReport } from '../functions/api/report';
 import { handleOcr } from '../functions/api/ocr';
+import { handleStructure } from '../functions/api/structure';
 import { handleUsage } from '../functions/api/usage';
 import { isFake } from '../functions/_lib/env';
 import { donateLinks } from '../functions/api/config';
@@ -39,7 +40,7 @@ const loggingFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   return r;
 }) as typeof fetch;
 globalThis.fetch = loggingFetch;
-const handlers: Record<string, (req: Request, env: never) => Promise<Response>> = { '/api/session': handleSession, '/api/score': handleScore, '/api/report': handleReport, '/api/ocr': handleOcr, '/api/usage': handleUsage };
+const handlers: Record<string, (req: Request, env: never) => Promise<Response>> = { '/api/session': handleSession, '/api/score': handleScore, '/api/report': handleReport, '/api/ocr': handleOcr, '/api/structure': handleStructure, '/api/usage': handleUsage };
 const TYPES: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.webp': 'image/webp', '.mp4': 'video/mp4', '.woff2': 'font/woff2', '.json': 'application/json', '.svg': 'image/svg+xml' };
 const port = Number(process.env.PORT || 8796);
 createServer(async (req, res) => {

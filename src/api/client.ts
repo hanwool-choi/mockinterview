@@ -55,6 +55,11 @@ export const api = {
     const d = unwrap(r);
     return d?.text ? { ok: true, text: d.text } : { ok: false, reason: 'error' };
   },
+  /** Rearranges extracted resume/portfolio text into sections (same facts); null keeps the local text. */
+  async structure(text: string, kind: 'resume' | 'portfolio', lang: 'ko' | 'en'): Promise<string | null> {
+    const r = await post<ApiResult<{ text: string }>>('/api/structure', { text, kind, lang }, 60_000);
+    return unwrap(r)?.text?.trim() || null;
+  },
   report: async (req: ReportRequest) => unwrap(await post<ApiResult<Report>>('/api/report', req, 130_000)),
   track(name: 'start' | 'complete' | 'drop' | 'rating' | 'fallback' | 'support_click', label = '', value = 0) {
     try {

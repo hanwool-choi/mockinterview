@@ -1,4 +1,4 @@
-import type { Chunk, InterviewerConfig, Lang, Plan, Question, Stage } from '../../shared/schema';
+import type { Chunk, DocKind, InterviewerConfig, Lang, Plan, Question, Stage } from '../../shared/schema';
 import { assignInterviewers } from './assign';
 
 export const STAGE_PLAN: Stage[] = ['intro', 'motivation', 'experience', 'experience', 'experience', 'competency', 'competency', 'company', 'situational', 'reverse', 'closing'];
@@ -48,19 +48,25 @@ const EN: Record<Stage, ((c: Ctx) => T)[]> = {
   closing: [() => ({ text: 'Is there anything else you would like to add before we wrap up?', intent: 'Closing impression', mustHit: ['contribute'], redFlags: ['please hire me'], outline: 'Restate key strength → thanks', seeds: ['', ''] })],
 };
 
+/** The lines claims are picked from; section labels stay in so their sections can be told apart. */
+const claimLines = (text: string) => text.split(/\n/).filter((l) => stripBullet(l).length > 6 || /^\s*(?:\[[^\]]+\]|#{1,3}\s)/.test(l));
 const isBullet = (l: string) => /^\s*[-•·*]/.test(l);
 const stripBullet = (l: string) => l.replace(/^[-•·*\s]+/, '').replace(/^\[[^\]]*\]\s*/, '').trim();
 /** How much a line reads like a result: figures and result markers (%, →, 배, 명...); dates like 2019.07 ~ 2021.02 do not count. */
 const claimWeight = (l: string) => {
-  const noDates = l.replace(/\d{4}[.\-/]\d{1,2}(?:[.\-/]\d{1,2})?|\d{4}\s*년|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}/g, '');
-  return (noDates.match(/\d/g) ?? []).length + (/[%→]|배|명|건|분|일|시간|원|x\b/.test(noDates) ? 5 : 0);
+  const noDates = l.replace(/\d{4}[.\-/]\d{1,2}(?:[.\-/]\d{1,2})?|\d{4}\s*년|\b(?:19|20)\d{2}\s*[~–-]\s*(?:(?:19|20)\d{2}|현재|present)\b|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}/g, '');
+  // A result unit right after a figure (18%, 4만 명, 9분, 1.6배) or an arrow; "지원분야" holds 분 but is no result.
+  return (noDates.match(/\d/g) ?? []).length + (/→|\d\s*(?:%|배|만|천|명|건|분|일|시간|원|개|x\b)/.test(noDates) ? 5 : 0);
 };
 
 /** Cut at a word boundary, never mid-word, and drop a trailing parenthetical aside when the claim stands without it. */
 function tidyClaim(line: string, max: number): string {
-  let s = stripBullet(line).replace(/^(?:결과|성과|실행|문제|가설|회고|result|outcome|impact|execution)\s*[:：]\s*/i, '').replace(/[.。]$/, '');
+  let s = stripBullet(line).replace(/^(?:결과|성과|실행|문제|가설|회고|내 역할|역할|result|outcome|impact|execution|my role|role)\s*[:：]\s*/i, '').replace(/[.。]$/, '');
   const noAside = s.replace(/\s*\([^()]*\)\s*$/, '');
   if (noAside.length >= 15) s = noAside;
+  // One sentence: "61% → 72%. 단, CS 문의가…" quotes the first sentence that carries a result.
+  const sentences = s.split(/(?<=[.。])\s+/);
+  if (sentences.length > 1) s = (sentences.find((x) => claimWeight(x) >= 5) ?? sentences[0]).replace(/[.。]$/, '');
   if (s.length <= max) return s;
   const cut = s.slice(0, max);
   const at = Math.max(cut.lastIndexOf(', '), cut.lastIndexOf(' '));
@@ -68,16 +74,31 @@ function tidyClaim(line: string, max: number): string {
 }
 
 /** Skills lists and section headers are not achievements, even when they hold digits (GA4, 2021.03). */
-const notClaim = (l: string) => placeOf(l) !== undefined || /^\s*(?:skills?|역량|기술|tools?|자격|학력|education)\b|^\s*\[(?:역량|기술|skills?|자격|학력)/i.test(l.trim());
-const lineScore = (l: string) => (notClaim(l) ? -100 : claimWeight(l) + (isBullet(l) ? 1 : 0));
+const notClaim = (l: string, kind: DocKind = 'resume') => placeOf(l, kind) !== undefined || /^\s*(?:skills?|역량|기술|tools?|자격|학력|education)\b|^\s*\[(?:역량|기술|skills?|자격|학력)/i.test(l.trim());
+// A result line is what to ask about; a problem, hypothesis or retro line describes the situation, not the achievement.
+const labelBonus = (l: string) => (/^[-•·*\s]*(?:결과|성과|result|outcome|impact)\s*[:：]/i.test(l) ? 3 : /^[-•·*\s]*(?:문제|배경|가설|회고|problem|background|hypothesis|retro)\s*[:：]/i.test(l) ? -8 : 0);
+const lineScore = (l: string, kind: DocKind = 'resume') => (notClaim(l, kind) ? -100 : claimWeight(l) + (isBullet(l) ? 1 : 0) + labelBonus(l));
+/** Sections whose lines are never achievements, even with figures (학력 2012 ~ 2018, 기본정보 경력 5년). */
+const NO_CLAIM_SECTION = /^(?:\[|#{1,3}\s*)(?:학력|역량|핵심\s*역량|스킬|기술|기본정보|인적사항|연락처|자격|자격증|교육|education|skills|contact|profile|certifications?)\b/i;
+/** Each line's score with its section taken into account. */
+function scoreLines(lines: string[], kind: DocKind): number[] {
+  let blocked = false;
+  return lines.map((l) => {
+    const t = l.trim();
+    if (NO_CLAIM_SECTION.test(t)) blocked = true;
+    else if (placeOf(t, kind) !== undefined) blocked = false;
+    return blocked ? -100 : lineScore(l, kind);
+  });
+}
 
 /** Every achievement line, spread across documents: each chunk's best first, then each one's second best, and so on. */
 export function claimCandidates(chunks: Chunk[]): { chunk: Chunk; pick: number }[] {
   const per = chunks
     .filter((c) => c.kind !== 'jd')
     .map((c) => {
-      const lines = c.text.split(/\n/).filter((l) => stripBullet(l).length > 6);
-      const picks = lines.map((l, i) => ({ i, w: lineScore(l) })).filter((x) => x.w >= 5).sort((a, b) => b.w - a.w);
+      const lines = claimLines(c.text);
+      const sc = scoreLines(lines, c.kind);
+      const picks = lines.map((_, i) => ({ i, w: sc[i] })).filter((x) => x.w >= 5).sort((a, b) => b.w - a.w);
       return { c, picks };
     })
     .filter((x) => x.picks.length)
@@ -96,45 +117,83 @@ export function quoteKo(q: string): string {
 }
 
 type Place = { kind: 'company' | 'project'; name: string } | null;
-/** The header a claim sits under: "[경력] 회사 (2021.03 ~ 현재) 직함", "[포트폴리오] 프로젝트", "Company (Mar 2021 – present) Title", "Case study: X". */
-function placeOf(line: string): Place | undefined {
+const DATE = /\d{4}\s*[.\-/년]\s*\d{0,2}|\d{4}\s*[~–-]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{4}/i;
+const SECTION = /^(?:경력|경력사항|성과|주요\s*성과|역량|핵심\s*역량|스킬|기술|학력|연락처|자격|자격증|수상|자기소개|활동|교육|프로젝트|포트폴리오|기본정보|인적사항|요약|experience|work|employment|skills|education|contact|projects?|portfolio|summary|profile|awards|certifications?)\b/i;
+const tidyName = (n: string) => n.replace(/^\d+[.)]\s*/, '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+
+/**
+ * The header a claim sits under: "[경력] 회사 (2021.03 ~ 현재) 직함", "[포트폴리오] 프로젝트", "Company (Mar 2021 – present) Title",
+ * "Case study: X", a layout line "회사 | 직함 | 2021.03 ~ 현재", or a "## heading" (a project in a portfolio).
+ * null = a section that is not a place (경력, 역량...); undefined = not a header at all.
+ */
+function placeOf(line: string, kind: DocKind = 'resume'): Place | undefined {
   const t = line.trim();
+  const heading = t.match(/^#{1,3}\s+(.+)$/);
+  if (heading) {
+    const h = heading[1].trim();
+    if (SECTION.test(h)) return null;
+    if (DATE.test(h) && /[|·]/.test(h)) return placeOf(h, kind);
+    return kind === 'portfolio' ? { kind: 'project', name: tidyName(h) } : null;
+  }
   const tagged = t.match(/^\[([^\]]+)\]\s*(.+)$/);
   if (tagged) {
     const [, tag, rest] = tagged;
-    if (/포트폴리오|프로젝트|portfolio|project|case/i.test(tag)) return { kind: 'project', name: rest.trim() };
+    if (/포트폴리오|프로젝트|portfolio|project|case/i.test(tag)) return { kind: 'project', name: tidyName(rest) };
     if (/경력|경험|career|experience|work|employment/i.test(tag)) return { kind: 'company', name: rest.split(/[(|·,]/)[0].trim() };
     return null; // [역량], [학력]...: a section that is not a place
   }
+  if (/^\[[^\]]+\]$/.test(t)) return null; // "[경력사항]" alone: a section label
   const labelled = t.match(/^(case study|project|프로젝트|포트폴리오)\s*[:：]\s*(.+)$/i);
-  if (labelled) return { kind: 'project', name: labelled[2].trim() };
+  if (labelled) return { kind: 'project', name: tidyName(labelled[2]) };
+  // "회사 | 직함 | 2021.03 ~ 현재" (no achievement in it): the first cell that is not a date.
+  const cells = t.split(/\s+[|·]\s+/);
+  if (cells.length >= 2 && DATE.test(t) && cells.every((c) => claimWeight(c) < 5)) {
+    const name = cells.find((c) => !DATE.test(c) && c.length >= 2);
+    if (name) return { kind: 'company', name: name.trim() };
+  }
   if (!isBullet(t) && /\(\s*(?:[A-Za-z]{3,}\.?\s*)?\d{4}/.test(t)) return { kind: 'company', name: t.split('(')[0].trim() };
   return undefined;
+}
+
+/** A table row holds its own place: "2021.03 ~ 현재 | 오늘장보기 | 매니저 | 재구매율 18% → 27% 개선". */
+function rowPlace(line: string): { place: Place; claim: string } | null {
+  const cells = line.split(/\s+\|\s+/);
+  if (cells.length < 3 || !DATE.test(line)) return null;
+  const best = cells.reduce((a, b) => (claimWeight(b) > claimWeight(a) ? b : a));
+  const name = cells.find((c) => c !== best && !DATE.test(c) && c.trim().length >= 2);
+  return name ? { place: { kind: 'company', name: name.trim() }, claim: best } : null;
 }
 
 /**
  * The claim to ask about and where it comes from, so a question never throws a bare number at the candidate
  * ("35% 개선에서 기여한 부분은?") but says whose work it was ("오늘장보기에 계실 때 '…'라고 적어 주셨는데요").
  */
-export function claimAnchor(text: string, lang: Lang, max = 80, pick?: number): { claim: string; where: string } {
-  const lines = text.split(/\n/).filter((l) => stripBullet(l).length > 6);
-  const scored = lines.map((l, i) => ({ l, i, w: lineScore(l) }));
+export function claimAnchor(text: string, lang: Lang, max = 80, pick?: number, kind: DocKind = 'resume'): { claim: string; where: string } {
+  const lines = claimLines(text);
+  const sc = scoreLines(lines, kind);
+  const scored = lines.map((l, i) => ({ l, i, w: sc[i] }));
   const best = pick !== undefined && scored[pick] ? scored[pick] : scored.reduce((a, b) => (b.w > a.w ? b : a), scored[0] ?? { l: text, i: 0, w: 0 });
   let place: Place = null;
-  for (let i = best.i - 1; i >= 0; i--) {
-    const p = placeOf(lines[i]);
-    if (p !== undefined) {
-      place = p;
-      break;
+  let claimText = best.l;
+  const row = rowPlace(best.l);
+  if (row) {
+    place = row.place;
+    claimText = row.claim;
+  } else
+    for (let i = best.i - 1; i >= 0; i--) {
+      const p = placeOf(lines[i], kind);
+      if (p !== undefined) {
+        place = p;
+        break;
+      }
     }
-  }
   const ko = lang === 'ko';
   const where = !place?.name
     ? ko ? '이력서에' : 'On your resume'
     : place.kind === 'company'
       ? ko ? `${place.name}에 계실 때` : `At ${place.name}`
       : ko ? `포트폴리오의 '${place.name}' 프로젝트에서` : `In your "${place.name}" case study`;
-  return { claim: tidyClaim(best.l, max), where };
+  return { claim: tidyClaim(claimText, max), where };
 }
 
 /** The line in a passage that carries a claim (used where only the words are needed). */
@@ -152,7 +211,7 @@ export function buildTemplatePlan(input: { lang: Lang; company: string; role: st
     used[stage] = n + 1;
     const c = stage === 'experience' && claims.length ? claims[expN++ % claims.length] : undefined;
     const ev = c?.chunk;
-    const anchor = c ? claimAnchor(c.chunk.text, input.lang, 80, c.pick) : null;
+    const anchor = c ? claimAnchor(c.chunk.text, input.lang, 80, c.pick, c.chunk.kind) : null;
     const t = bank[stage][n % bank[stage].length]({ company: input.company, role: input.role, career: input.career, quote: anchor?.claim ?? '', where: anchor?.where ?? '' });
     return {
       id: `t${i + 1}`,
