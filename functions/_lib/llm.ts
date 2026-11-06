@@ -1,7 +1,7 @@
 import type { ZodType } from 'zod';
 import { type Env, intVar, isFake } from './env';
 import { getFreeModels, healthyModels, markModel } from './models';
-import { CLAUDE_PREFIX, ClaudeDecline, DEFAULT_CLAUDE_MODELS, claudeChat } from './claude';
+import { CLAUDE_OFF_KEY, CLAUDE_PREFIX, ClaudeDecline, DEFAULT_CLAUDE_MODELS, claudeChat } from './claude';
 
 export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] };
@@ -148,7 +148,8 @@ export async function callJson<T>(
   const router = !!env.OPENROUTER_API_KEY;
   const freeExhausted = !router || !!(await env.IV_KV.get('free:exhausted'));
   // Claude goes first when its key is set, then Gemini (direct API); OpenRouter stays as the last fallback.
-  const claude = env.ANTHROPIC_API_KEY ? await healthyModels(env, (env.CLAUDE_MODELS || DEFAULT_CLAUDE_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => CLAUDE_PREFIX + m)) : [];
+  // Skipped for an hour after running out of credits or a rejected key (claude.ts), so Gemini answers without a failed call first.
+  const claude = env.ANTHROPIC_API_KEY && !(await env.IV_KV.get(CLAUDE_OFF_KEY)) ? await healthyModels(env, (env.CLAUDE_MODELS || DEFAULT_CLAUDE_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => CLAUDE_PREFIX + m)) : [];
   // Gemini (direct API) goes first when its key is set: its free tier costs nothing; OpenRouter stays as the fallback.
   const gemini = env.GEMINI_API_KEY ? await healthyModels(env, (env.GEMINI_MODELS || DEFAULT_GEMINI_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => GEMINI_PREFIX + m)) : [];
   const free = [...claude, ...gemini, ...(freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5))];

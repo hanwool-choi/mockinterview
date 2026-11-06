@@ -61,3 +61,29 @@ describe('message conversion', () => {
     expect(claudeCost({} as never, 'claude-sonnet-5-5', { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 1_000_000 })).toBeCloseTo(0.2, 9);
   });
 });
+
+describe('Claude off when credits run out or the key is bad', () => {
+  const err = (status: number, type: string, msg: string) => () => Response.json({ type: 'error', error: { type, message: msg } }, { status });
+  for (const [label, res, reason] of [
+    ['402 billing_error', err(402, 'billing_error', 'Your credit balance is too low to access the Anthropic API.'), 'billing'],
+    ['400 low credit balance', err(400, 'invalid_request_error', 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.'), 'billing'],
+    ['401 bad key', err(401, 'authentication_error', 'invalid x-api-key'), 'auth'],
+  ] as const) {
+    it(`${label}: switches to Gemini and skips Claude for an hour`, async () => {
+      sent.length = 0;
+      const e = env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' });
+      const first = await callJson(e, { messages: [{ role: 'user', content: 'hi' }], schema, timeoutMs: 5000, fetchFn: route(res), fake: () => ({ a: 0 }) });
+      expect(first).toMatchObject({ ok: true, model: 'gemini:m1' });
+      expect(JSON.parse((await (e as { IV_KV: KVNamespace }).IV_KV.get('claude:off'))!)).toMatchObject({ reason });
+      sent.length = 0;
+      const second = await callJson(e, { messages: [{ role: 'user', content: 'hi' }], schema, timeoutMs: 5000, fetchFn: route(res), fake: () => ({ a: 0 }) });
+      expect(second).toMatchObject({ ok: true, model: 'gemini:m1' });
+      expect(sent.some((s) => s.url.includes('anthropic.com'))).toBe(false);
+    });
+  }
+  it('an ordinary bad request does not switch Claude off', async () => {
+    const e = env({ GEMINI_API_KEY: 'g', GEMINI_MODELS: 'm1' });
+    await callJson(e, { messages: [{ role: 'user', content: 'hi' }], schema, timeoutMs: 5000, fetchFn: route(err(400, 'invalid_request_error', 'messages: field required')), fake: () => ({ a: 0 }) });
+    expect(await (e as { IV_KV: KVNamespace }).IV_KV.get('claude:off')).toBeNull();
+  });
+});

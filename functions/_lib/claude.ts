@@ -21,6 +21,32 @@ export function claudeCost(env: Env, model: string, u: { input_tokens: number; o
   return (input * pin + u.output_tokens * pout) / 1e6;
 }
 
+/**
+ * Errors that will not go away by trying again in a minute: no credits left (402 billing_error, or a 400 that says
+ * the credit balance is too low) or a key that is invalid, expired or not allowed (401/403).
+ */
+export function offReason(status: number | undefined, type: string | null | undefined, message: string): 'billing' | 'auth' | null {
+  if (status === 402 || type === 'billing_error' || /credit balance|billing|spend limit/i.test(message)) return 'billing';
+  if (status === 401 || status === 403 || type === 'authentication_error' || type === 'permission_error') return 'auth';
+  return null;
+}
+
+export const CLAUDE_OFF_KEY = 'claude:off';
+/** How long Claude is skipped after such an error: checked again hourly, so topping up credits brings it back by itself. */
+export const CLAUDE_OFF_SECONDS = 3600;
+
+async function switchOff(env: Env, reason: 'billing' | 'auth', status: number | undefined): Promise<void> {
+  const until = new Date(Date.now() + CLAUDE_OFF_SECONDS * 1000).toISOString();
+  await env.IV_KV.put(CLAUDE_OFF_KEY, JSON.stringify({ reason, status, until }), { expirationTtl: CLAUDE_OFF_SECONDS });
+  console.warn(`claude switched off for ${CLAUDE_OFF_SECONDS}s: ${reason} (HTTP ${status}); Gemini serves meanwhile`);
+}
+
+/** Why Claude is skipped right now, if it is (for the operator view). */
+export async function claudeOff(env: Env): Promise<{ reason: string; status?: number; until: string } | null> {
+  const v = await env.IV_KV.get(CLAUDE_OFF_KEY);
+  return v ? JSON.parse(v) : null;
+}
+
 const DATA_URL = /^data:(image\/(?:png|jpeg|webp|gif));base64,(.+)$/;
 
 /** Our OpenAI-style messages → the Messages API: system text apart, image data URLs as base64 image blocks. */
@@ -62,7 +88,11 @@ export async function claudeChat(env: Env, model: string, messages: ChatMessage[
       output_config: { effort: 'low' },
     });
   } catch (e) {
-    if (e instanceof Anthropic.APIError) throw Object.assign(new Error(`${CLAUDE_PREFIX}${model}: HTTP ${e.status ?? 0}`), { status: e.status ?? 0 });
+    if (e instanceof Anthropic.APIError) {
+      const off = offReason(e.status, e.type, e.message);
+      if (off) await switchOff(env, off, e.status);
+      throw Object.assign(new Error(`${CLAUDE_PREFIX}${model}: HTTP ${e.status ?? 0}${off ? ` (${off})` : ''}`), { status: e.status ?? 0 });
+    }
     throw e;
   }
   const usage = { calls: 1, tokensIn: res.usage.input_tokens, tokensOut: res.usage.output_tokens, costUsd: claudeCost(env, model, res.usage) };

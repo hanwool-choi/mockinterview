@@ -26,3 +26,14 @@ describe('/api/usage (operator only)', () => {
     expect(((await (await handleUsage(req('GET', 'secret'), env)).json()) as { paused: boolean }).paused).toBe(false);
   });
 });
+
+describe('/api/usage: Claude status', () => {
+  it('shows why Claude is off, and turns it back on on request', async () => {
+    const kv = memKV();
+    const env = { IV_KV: kv, ADMIN_TOKEN: 'secret' } as never;
+    await kv.put('claude:off', JSON.stringify({ reason: 'billing', status: 402, until: '2026-11-06T12:00:00.000Z' }));
+    expect(await (await handleUsage(req('GET', 'secret'), env)).json()).toMatchObject({ claudeOff: { reason: 'billing', status: 402 } });
+    expect(await (await handleUsage(req('POST', 'secret', { claudeOn: true }), env)).json()).toEqual({ claudeOff: null });
+    expect(await kv.get('ai:kill')).toBeNull(); // re-enabling Claude does not touch the kill switch
+  });
+});
