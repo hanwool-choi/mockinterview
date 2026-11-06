@@ -22,8 +22,9 @@ type Bucket = { calls: number; costMicro: number };
 type DayRecord = { calls: number; tokensIn: number; tokensOut: number; costMicro: number; sessions: number; kinds: Record<string, Bucket>; models: Record<string, Bucket> };
 
 /** Defaults when the env vars are unset; wrangler.toml sets the live values. */
-export const SESSION_BUDGET_USD: Record<Length, number> = { quick: 0.02, full: 0.1 };
-export const DAILY_BUDGET_USD = 2;
+/** Sized for Claude Sonnet 5.5 ($2/$10 per 1M tokens): a scored turn is about $0.02, a quick interview about $0.12, a full one about $0.39. */
+export const SESSION_BUDGET_USD: Record<Length, number> = { quick: 0.15, full: 0.5 };
+export const DAILY_BUDGET_USD = 10;
 /** Minimum gap between two AI calls of one session (report is exempt: it follows the last answer). */
 export const MIN_GAP_MS = 2_000;
 const SIX_HOURS = 6 * 3600;

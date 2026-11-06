@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod';
 import { type Env, intVar, isFake } from './env';
 import { getFreeModels, healthyModels, markModel } from './models';
+import { CLAUDE_PREFIX, ClaudeDecline, DEFAULT_CLAUDE_MODELS, claudeChat } from './claude';
 
 export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string | ContentPart[] };
@@ -57,7 +58,7 @@ async function chatOnce(env: Env, model: string, messages: ChatMessage[], timeou
     return await chatRequest(env, model, messages, timeoutMs, fetchFn, !think, maxTokens);
   } catch (e) {
     const left = timeoutMs - (Date.now() - started);
-    if (!think && e instanceof HttpError && e.status === 400 && left > 1000) return chatRequest(env, model, messages, left, fetchFn, false, maxTokens);
+    if (!think && !model.startsWith(CLAUDE_PREFIX) && e instanceof HttpError && e.status === 400 && left > 1000) return chatRequest(env, model, messages, left, fetchFn, false, maxTokens);
     throw e;
   }
 }
@@ -66,6 +67,15 @@ async function chatRequest(env: Env, model: string, messages: ChatMessage[], tim
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
+    if (model.startsWith(CLAUDE_PREFIX)) {
+      try {
+        return await claudeChat(env, model.slice(CLAUDE_PREFIX.length), messages, timeoutMs, fetchFn, maxTokens);
+      } catch (e) {
+        const status = (e as { status?: number }).status;
+        if (status !== undefined && !(e instanceof ClaudeDecline)) throw new HttpError((e as Error).message, status);
+        throw e;
+      }
+    }
     if (model.startsWith(GEMINI_PREFIX)) {
       const m = model.slice(GEMINI_PREFIX.length);
       const res = await fetchFn(GEMINI_URL, {
@@ -137,9 +147,11 @@ export async function callJson<T>(
   // The account-wide free daily quota is exhausted: go straight to paid (or fallback) until it resets.
   const router = !!env.OPENROUTER_API_KEY;
   const freeExhausted = !router || !!(await env.IV_KV.get('free:exhausted'));
+  // Claude goes first when its key is set, then Gemini (direct API); OpenRouter stays as the last fallback.
+  const claude = env.ANTHROPIC_API_KEY ? await healthyModels(env, (env.CLAUDE_MODELS || DEFAULT_CLAUDE_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => CLAUDE_PREFIX + m)) : [];
   // Gemini (direct API) goes first when its key is set: its free tier costs nothing; OpenRouter stays as the fallback.
   const gemini = env.GEMINI_API_KEY ? await healthyModels(env, (env.GEMINI_MODELS || DEFAULT_GEMINI_MODELS).split(',').map((m) => m.trim()).filter(Boolean).map((m) => GEMINI_PREFIX + m)) : [];
-  const free = [...gemini, ...(freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5))];
+  const free = [...claude, ...gemini, ...(freeExhausted ? [] : (await healthyModels(env, await getFreeModels(env, fetchFn, { vision: opts.vision }))).slice(0, opts.maxModels ?? 5))];
   const paid = router && env.PAID_OVERFLOW === 'on' ? (env.PAID_MODEL ?? '').split(',').map((m) => m.trim()).filter(Boolean) : [];
   const errors: string[] = [];
   const start = Date.now();
@@ -172,13 +184,22 @@ export async function callJson<T>(
 
   for (const model of free) {
     if (Date.now() >= freeEnd) break;
-    if (!model.startsWith(GEMINI_PREFIX) && (await env.IV_KV.get('free:exhausted'))) break;
+    // Only OpenRouter's free models share that daily quota; Claude and Gemini are billed per token.
+    if (!model.startsWith(GEMINI_PREFIX) && !model.startsWith(CLAUDE_PREFIX) && (await env.IV_KV.get('free:exhausted'))) break;
     try {
       const data = await attempt(model, freeEnd, 2);
       if (data) return { ok: true, data, model, usage };
       errors.push(`${model}: invalid json, wrong language or out of time`);
     } catch (e) {
       if (e instanceof HttpError) await markModel(env, model, e.status);
+      // A declined Claude reply is still billed: count it.
+      const billed = (e as { usage?: Usage }).usage;
+      if (billed) {
+        usage.calls += billed.calls;
+        usage.tokensIn += billed.tokensIn;
+        usage.tokensOut += billed.tokensOut;
+        usage.costUsd = Math.round((usage.costUsd + billed.costUsd) * 1e9) / 1e9;
+      }
       errors.push(e instanceof Error ? e.message : String(e));
     }
   }

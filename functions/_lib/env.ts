@@ -2,6 +2,12 @@ export type Env = {
   IV_KV: KVNamespace;
   OPENROUTER_API_KEY?: string;
   /** Google AI Studio key: Gemini models are called directly and tried first. */
+  /** Claude API key (secret; a service account key). Claude models are tried first when it is set. */
+  ANTHROPIC_API_KEY?: string;
+  /** Comma list of Claude model ids, tried in order (default: claude-sonnet-5-5). */
+  CLAUDE_MODELS?: string;
+  /** Override Claude prices, "model:in/out,..." in USD per 1M tokens. */
+  CLAUDE_PRICES?: string;
   GEMINI_API_KEY?: string;
   /** Comma list of Gemini model ids, tried in order (default: gemini-2.5-flash-lite, gemini-3.5-flash-lite). */
   GEMINI_MODELS?: string;
@@ -39,7 +45,7 @@ export type Env = {
 };
 
 /** Demo mode: no AI provider key at all. */
-export const isFake = (env: Env) => !env.OPENROUTER_API_KEY && !env.GEMINI_API_KEY;
+export const isFake = (env: Env) => !env.OPENROUTER_API_KEY && !env.GEMINI_API_KEY && !env.ANTHROPIC_API_KEY;
 export const intVar = (v: string | undefined, d: number) => {
   const n = Number.parseInt(v ?? '', 10);
   return Number.isFinite(n) && n > 0 ? n : d;
